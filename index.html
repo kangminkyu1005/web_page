@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대회 후기 프롬프트 생성기</title>
+    <style>
+        :root { --primary-color: #4A90E2; --bg-color: #f4f7f9; }
+        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: white; width: 90%; max-width: 600px; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        section { display: none; }
+        section.active { display: block; }
+        h2 { border-bottom: 3px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; font-size: 1.2rem; }
+        .input-group { margin-bottom: 15px; }
+        .option-item { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; border: 1px solid #eee; }
+        .option-item:hover { background: #eef5ff; }
+        .hidden-input { display: none; width: 100%; margin-top: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        textarea, input[type="text"] { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-container { display: flex; justify-content: flex-end; margin-top: 20px; }
+        button { padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; background: var(--primary-color); color: white; font-weight: bold; }
+        #final-prompt-box { background: #333; color: #fff; padding: 20px; border-radius: 10px; white-space: pre-wrap; font-family: monospace; line-height: 1.6; margin-bottom: 15px; }
+        
+        /* 메인 페이지 전용 스타일 */
+        .intro-content { text-align: center; padding: 40px 0; }
+        .intro-content h1 { font-size: 1.5rem; margin-bottom: 30px; color: #333; word-break: keep-all; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <section id="step0" class="active">
+        <div class="intro-content">
+            <h1>대회 후기 웹 페이지 계획서 작성하기</h1>
+            <button onclick="nextStep(0, 1)" style="padding: 15px 40px; font-size: 1.1rem;">작성 시작하기</button>
+        </div>
+    </section>
+
+    <section id="step1">
+        <h2 style="background:#ccffcc; padding:10px;">1. 전체 디자인 컨셉</h2>
+        <div class="input-group">
+            <div class="option-item"><input type="radio" name="theme" value="사이버 펑크"> 사이버 펑크</div>
+            <div class="option-item"><input type="radio" name="theme" value="클린 테크"> 클린 테크</div>
+            <div class="option-item"><input type="radio" name="theme" value="레트로 게임"> 레트로 게임</div>
+            <div class="option-item">
+                <input type="radio" name="theme" value="custom"> 직접 작성
+                <textarea class="hidden-input" id="theme-custom-text" placeholder="상세 테마 입력"></textarea>
+            </div>
+        </div>
+        <div class="btn-container"><button onclick="nextStep(1, 2)">다음</button></div>
+    </section>
+
+    <section id="step2">
+        <h2 style="background:#ccccff; padding:10px;">2. 세부 구성 및 인터렉티브 배경</h2>
+        <div class="input-group">
+            <label>대회 명</label><input type="text" id="event-name" placeholder="2026 한국 로보컵 코리아 오픈">
+            <label>팀 명</label><input type="text" id="team-name" placeholder="팀 이름 입력">
+            <label>팀 원</label><input type="text" id="team-members" placeholder="팀원 이름 입력">
+            
+            <p style="margin-top:15px;"><strong>[인터렉티브 배경 효과 선택]</strong></p>
+            <div class="option-item"><input type="radio" name="bg-effect" value="파티클 네트워크"> 파티클 네트워크</div>
+            <div class="option-item"><input type="radio" name="bg-effect" value="매트릭스 코드 비"> 매트릭스 코드 비</div>
+            <div class="option-item"><input type="radio" name="bg-effect" value="플로팅 버블"> 플로팅 버블</div>
+            <div class="option-item"><input type="radio" name="bg-effect" value="은하수 별빛"> 은하수 별빛</div>
+            <div class="option-item"><input type="radio" name="bg-effect" value="물결 파동 (Ripple)"> 물결 파동 (Ripple)</div>
+            <div class="option-item">
+                <input type="radio" name="bg-effect" value="custom"> 직접 효과 입력
+                <input type="text" class="hidden-input" id="bg-custom-text" placeholder="예: 눈 내리는 효과 등">
+            </div>
+        </div>
+        <div class="btn-container"><button onclick="nextStep(2, 3)">다음</button></div>
+    </section>
+
+    <section id="step3">
+        <h2 style="background:#ffd8b1; padding:10px;">3. 핵심 내용 구성 (Reflection)</h2>
+        <div class="input-group">
+            <label><strong>Page1: 가장 아쉬운 점</strong></label>
+            <textarea id="page1" placeholder="내용을 입력하세요."></textarea>
+            <label><strong>Page2: 개선해야 할 점</strong></label>
+            <textarea id="page2" placeholder="내용을 입력하세요."></textarea>
+            <label><strong>Page3: 우리 팀이 잘한 점</strong></label>
+            <textarea id="page3" placeholder="내용을 입력하세요."></textarea>
+            <label><strong>Page4: 대회를 통해 배운 점</strong></label>
+            <textarea id="page4" placeholder="내용을 입력하세요."></textarea>
+        </div>
+        <div class="btn-container"><button onclick="nextStep(3, 4)">다음</button></div>
+    </section>
+
+    <section id="step4">
+        <h2 style="background:#ffccff; padding:10px;">4. 마무리 페이지 연출 및 한 줄 평</h2>
+        <div class="input-group">
+            <label>대회 마무리 한 줄 평 입력</label>
+            <input type="text" id="ending-comment" maxlength="20" placeholder="여기에 입력한 값이 서브 텍스트로 표시됩니다.">
+            
+            <p style="margin-top:15px;"><strong>[마무리 페이지 연출 아이디어]</strong></p>
+            <div class="option-item"><input type="radio" name="ending-style" value="폭죽 효과: 한 줄 평이 나타날 때 화면 가득 폭죽이 터지는 연출"> 축하 폭죽 연출</div>
+            <div class="option-item"><input type="radio" name="ending-style" value="영화 엔딩 크레딧: 팀명과 팀원 이름이 위로 서서히 올라가는 연출"> 엔딩 크레딧 연출</div>
+            <div class="option-item"><input type="radio" name="ending-style" value="네온 사인: 한 줄 평이 화려한 네온 사인처럼 깜빡이는 연출"> 네온 사인 연출</div>
+
+            <p style="margin-top:15px;"><strong>[종료 액션]</strong></p>
+            <div class="option-item"><input type="radio" name="action" value="리플레이"> 리플레이</div>
+            <div class="option-item"><input type="radio" name="action" value="방명록"> 방명록</div>
+        </div>
+        <div class="btn-container"><button onclick="generatePrompt()">프롬프트 작성 완료</button></div>
+    </section>
+
+    <section id="step5">
+        <h2>5. 최종 프롬프트</h2>
+        <div id="final-prompt-box"></div>
+        <div class="btn-container"><button onclick="copyPrompt()" style="background:#28a745;">프롬프트 복사하기</button></div>
+    </section>
+</div>
+
+<script>
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const parent = e.target.closest('.input-group');
+            parent.querySelectorAll('.hidden-input').forEach(input => input.style.display = 'none');
+            if (e.target.value === 'custom') {
+                const textInput = e.target.parentElement.querySelector('.hidden-input');
+                if (textInput) textInput.style.display = 'block';
+            }
+        });
+    });
+
+    function nextStep(c, n) {
+        document.getElementById(`step${c}`).classList.remove('active');
+        document.getElementById(`step${n}`).classList.add('active');
+    }
+
+    function getVal(name, customId) {
+        const sel = document.querySelector(`input[name="${name}"]:checked`);
+        if (sel && sel.value === 'custom') return document.getElementById(customId).value;
+        return sel ? sel.value : "";
+    }
+
+    function generatePrompt() {
+        const theme = getVal('theme', 'theme-custom-text');
+        const bgEffect = getVal('bg-effect', 'bg-custom-text');
+        const endingStyle = getVal('ending-style');
+        const endingVal = document.getElementById('ending-comment').value;
+        
+        const finalPrompt = `너는 웹 프로그래밍 전문가야. 아래 기획안을 바탕으로 HTML, CSS, JS가 통합된 단일 코드를 작성해 줘.
+
+[ 1. 메인 페이지 ]
+- 대회명(고정): ${document.getElementById('event-name').value}
+- 팀 명(고정): ${document.getElementById('team-name').value} 
+- 팀 원(고정): ${document.getElementById('team-members').value}
+- 배경 효과: ${bgEffect} (HTML5 Canvas와 Vanilla JS를 사용하여 구현할 것)
+
+[ 2. 상세 페이지 ]
+- 1.가장 아쉬운 점(고정): ${document.getElementById('page1').value}
+- 2.개선해야 할 점(고정): ${document.getElementById('page2').value}
+- 3.우리 팀이 잘한 점(고정): ${document.getElementById('page3').value}
+- 4.대회를 통해 배운 점(고정): ${document.getElementById('page4').value}
+
+[ 3. 마무리 페이지 구성 ]
+- 대회 마무리 한 줄 평(고정): "${endingVal}"
+- **마무리 연출**: ${endingStyle} (JS와 CSS 애니메이션으로 생동감 있게 구현해줘)
+- 최종 버튼 액션: ${getVal('action')}
+
+[ 4. 공통 요구사항 ]
+- 모든 페이지 상단에 현재 페이지 제목이 표시되는 Gauge 형태의 진행 바를 구현해줘.
+- 페이지 전환 시 부드러운 페이드인/아웃 효과를 적용해줘.
+- 디자인 테마: ${theme}`;
+
+        document.getElementById('final-prompt-box').innerText = finalPrompt;
+        nextStep(4, 5);
+    }
+
+    function copyPrompt() {
+        navigator.clipboard.writeText(document.getElementById('final-prompt-box').innerText).then(() => alert("프롬프트 복사 완료!"));
+    }
+</script>
+</body>
+</html>
