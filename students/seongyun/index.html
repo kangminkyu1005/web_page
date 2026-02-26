@@ -1,1 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 한국 로봇컵 - Team WAW</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mario-red: #e4000f;
+            --mario-blue: #0050b0;
+            --mario-sky: #5c94fc;
+            --mario-brick: #cb4b16;
+            --text-color: #ffffff;
+            --pixel-font: 'Press Start 2P', cursive;
+        }
 
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; 
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect x="8" y="0" width="4" height="20" fill="white"/><rect x="0" y="8" width="20" height="4" fill="white"/></svg>'), auto; 
+        }
+
+        body {
+            background-color: #000;
+            color: var(--text-color);
+            font-family: var(--pixel-font), sans-serif;
+            overflow: hidden;
+            line-height: 1.6;
+        }
+
+        /* --- Clouds Background (Full Page) --- */
+        .clouds-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1;
+        }
+        .cloud {
+            position: absolute; background: #fff; border-radius: 20px; opacity: 0.8; 
+            animation: moveCloud linear infinite;
+        }
+        .cloud::after, .cloud::before { content: ''; position: absolute; background: #fff; border-radius: 50%; }
+        
+        .cloud-lg { width: 140px; height: 50px; }
+        .cloud-lg::after { width: 70px; height: 70px; top: -35px; left: 25px; }
+        .cloud-lg::before { width: 60px; height: 60px; top: -25px; left: 65px; }
+        
+        .cloud-sm { width: 90px; height: 35px; }
+        .cloud-sm::after { width: 45px; height: 45px; top: -22px; left: 12px; }
+        .cloud-sm::before { width: 40px; height: 40px; top: -18px; left: 40px; }
+
+        @keyframes moveCloud { 
+            from { transform: translateX(120vw); } 
+            to { transform: translateX(-40vw); } 
+        }
+
+        /* --- Music Player --- */
+        .music-player {
+            position: fixed; bottom: 10px; right: 10px; z-index: 1000;
+            background: rgba(0,0,0,0.8); padding: 5px; border: 2px solid #fff;
+            width: 300px; height: 80px; overflow: hidden;
+            transition: transform 0.3s;
+        }
+        .music-player:hover { transform: translateY(-5px); }
+
+        /* --- Loading Screen --- */
+        #loading-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000; opacity: 1;
+        }
+        .loading-text { margin-top: 20px; font-size: 24px; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* --- Main Layout --- */
+        #app-container {
+            display: none; width: 100vw; height: 100vh;
+            background-color: var(--mario-sky); position: relative;
+            flex-direction: column; z-index: 2;
+        }
+        .gauge-container { width: 100%; background: #000; padding: 20px; border-bottom: 4px solid #fff; }
+        .gauge-bar-outer { width: 80%; height: 30px; border: 4px solid #fff; margin: 10px auto; position: relative; }
+        .gauge-bar-inner { height: 100%; background: var(--mario-red); width: 33%; transition: width 0.5s ease; }
+
+        .page {
+            display: none; flex: 1; padding: 40px; overflow-y: auto;
+            max-width: 900px; margin: 0 auto; width: 100%;
+        }
+        .page.active { display: flex; flex-direction: column; justify-content: flex-start; animation: fadeIn 0.5s forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- UI Elements --- */
+        .card { background: rgba(0,0,0,0.7); border: 5px solid #fff; padding: 25px; margin-bottom: 20px; }
+        .card h2 { font-size: 18px; color: #ffcccb; margin-bottom: 15px; }
+        .card p { font-size: 14px; line-height: 1.8; }
+        
+        .btn {
+            background: var(--mario-brick); border: 5px solid #000; color: #fff;
+            padding: 20px 30px; font-family: var(--pixel-font); cursor: pointer;
+            box-shadow: 6px 6px #000; align-self: center; margin-top: 15px; font-size: 16px;
+        }
+        .btn:active { transform: translate(3px, 3px); box-shadow: 3px 3px #000; }
+
+        /* --- Guestbook Styles --- */
+        .guestbook-area { margin-top: 30px; border-top: 5px dashed #fff; padding-top: 30px; display: flex; flex-direction: column; }
+        .guestbook-title { font-size: 22px; margin-bottom: 20px; color: yellow; text-align: center; }
+        .guestbook-input-group { display: flex; gap: 15px; margin-bottom: 25px; }
+        .pixel-input {
+            flex: 1; background: #000; border: 4px solid #fff; color: #fff;
+            padding: 20px; font-family: var(--pixel-font); font-size: 16px;
+        }
+        .guestbook-list {
+            height: 350px; overflow-y: auto; background: rgba(0,0,0,0.6); 
+            padding: 20px; border: 5px solid #fff;
+        }
+        .guestbook-list::-webkit-scrollbar { width: 14px; }
+        .guestbook-list::-webkit-scrollbar-track { background: #000; }
+        .guestbook-list::-webkit-scrollbar-thumb { background: var(--mario-red); border: 3px solid #fff; }
+
+        .guest-entry { 
+            display: flex; align-items: flex-start; gap: 15px;
+            font-size: 15px; margin-bottom: 20px; border-bottom: 2px solid #555; 
+            padding-bottom: 15px; line-height: 1.5; 
+        }
+        .profile-icon { width: 60px; height: 50px; flex-shrink: 0; position: relative; }
+        .guest-entry span { color: yellow; display: block; margin-bottom: 5px; font-size: 12px; }
+        
+        /* Bullet Fire Animation */
+        @keyframes fireBreath {
+            0%, 100% { transform: scaleX(1); opacity: 0.8; }
+            50% { transform: scaleX(1.8); opacity: 1; }
+        }
+        .bullet-fire {
+            position: absolute; left: -18px; top: 15px; width: 25px; height: 20px;
+            background: linear-gradient(to right, red, orange, yellow);
+            clip-path: polygon(100% 0%, 0% 50%, 100% 100%);
+            animation: fireBreath 0.15s infinite;
+        }
+
+        /* --- Effects --- */
+        .coin-effect {
+            position: absolute; width: 30px; height: 40px; background: gold;
+            border: 4px solid #000; border-radius: 4px; z-index: 500;
+            animation: coinJump 0.6s ease-out forwards;
+        }
+        @keyframes coinJump { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-180px) rotateY(1080deg); opacity: 0; } }
+
+        .mushroom {
+            position: fixed; width: 45px; height: 45px; pointer-events: none; z-index: 999;
+            animation: mushroomFade 0.8s ease-out forwards;
+        }
+        @keyframes mushroomFade { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.8) translateY(-80px); opacity: 0; } }
+
+        /* --- Credits --- */
+        .credits-container {
+            height: 220px; overflow: hidden; position: relative;
+            background: #000; border: 5px solid #fff; margin: 20px 0;
+        }
+        .credits-scroll { position: absolute; width: 100%; text-align: center; animation: scrollUp 18s linear infinite; }
+        @keyframes scrollUp { from { top: 100%; } to { top: -400%; } }
+        .star-icon { width: 35px; vertical-align: middle; margin-bottom: 8px; }
+    </style>
+</head>
+<body onclick="spawnMushroom(event)">
+
+    <div class="clouds-layer" id="clouds"></div>
+
+    <!-- 1. LOADING SCREEN -->
+    <div id="loading-screen">
+        <canvas id="starCanvas"></canvas>
+        <div class="loading-text">LOADING...</div>
+    </div>
+
+    <div id="app-container">
+        <!-- Progress Bar -->
+        <div class="gauge-container">
+            <div id="gauge-title" style="text-align:center; font-size:16px; margin-bottom:8px;">메인 페이지</div>
+            <div class="gauge-bar-outer">
+                <div id="gauge-inner" class="gauge-bar-inner"></div>
+            </div>
+        </div>
+
+        <!-- PAGE 1: MAIN -->
+        <section id="page-1" class="page active">
+            <div class="card" style="text-align: center;">
+                <h1 style="color:yellow; font-size:24px; margin-bottom:25px;">2026 한국 로봇컵 오픈 대회</h1>
+                <p style="margin-bottom:20px; font-size:18px;">TEAM: WAW</p>
+                <div style="border-top: 4px solid #fff; padding-top:20px; font-size:14px;">
+                    강성윤, 김주원, 황시윤, 여호준
+                </div>
+            </div>
+            <button class="btn" onclick="navTo(2)">WORLD 1-1 START</button>
+        </section>
+
+        <!-- PAGE 2: DETAIL -->
+        <section id="page-2" class="page">
+            <h1 style="font-size:24px; margin-bottom:25px; color:yellow; text-align: center;">대회 리포트</h1>
+            
+            <div class="card">
+                <h2>1. 가장 아쉬운 점</h2>
+                <p>프로그램을 잘 짠 것 같은데 상대 로봇과 많이 부딪첬다.</p>
+            </div>
+            
+            <div class="card">
+                <h2>2. 개선해야 할 점</h2>
+                <p>상대 로봇과 많이 부딪쳐서 거리 값을 조금 더 늘려서 미리 피하도록 한다.</p>
+            </div>
+
+            <div class="card">
+                <h2>3. 우리 팀이 잘한 점</h2>
+                <p>디포짓과 오브젝트를 먹는 프로그램을 잘 짠 것 같다.</p>
+            </div>
+
+            <div class="card">
+                <h2>4. 대회를 통해 배운 점</h2>
+                <p>디버거로써 프로그램에 조금 더 신경을 쓰고 여려번 돌리고 일어 날수 있는 경우을 생각해서 디버그를 한다.</p>
+            </div>
+
+            <button class="btn" onclick="navTo(3)">TO THE CASTLE</button>
+        </section>
+
+        <!-- PAGE 3: ENDING & GUESTBOOK -->
+        <section id="page-3" class="page">
+            <h1 style="text-align: center; color: yellow; font-size:24px;">COURSE CLEAR!</h1>
+            <p style="text-align: center; font-size:14px; margin: 20px 0;">"아쉬운 점도 있었지만 대회를 나간 것 만으로도 즐거웠다"</p>
+
+            <div class="credits-container">
+                <div class="credits-scroll">
+                    <div style="margin-bottom:50px;"><p style="color:#aaa; font-size:14px;">TEAM</p><p style="font-size:20px;">WAW</p></div>
+                    <div style="margin-bottom:30px;"><svg class="star-icon" viewBox="0 0 20 20" fill="yellow"><polygon points="10,1 13,7 19,8 14,13 15,19 10,16 5,19 6,13 1,8 7,7"/></svg><p style="font-size:16px;">SUPER STAR</p></div>
+                    <p style="font-size:14px; margin-top:20px;">THANK YOU FOR PLAYING!</p>
+                </div>
+            </div>
+
+            <!-- Guestbook Section -->
+            <div class="guestbook-area">
+                <p class="guestbook-title">[ 방명록 ]</p>
+                <div class="guestbook-input-group">
+                    <input type="text" id="guestMsg" class="pixel-input" placeholder="메시지 작성..." onkeyup="if(event.key === 'Enter') addComment(event)">
+                    <button class="btn" style="margin:0; padding:15px 25px;" onclick="addComment(event)">입력</button>
+                </div>
+                <div class="guestbook-list" id="commentList">
+                    <div class="guest-entry">
+                        <div class="profile-icon"><svg viewBox="0 0 20 20" fill="yellow"><polygon points="10,1 13,7 19,8 14,13 15,19 10,16 5,19 6,13 1,8 7,7"/></svg></div>
+                        <div class="guest-content"><span>ADMIN:</span> 2026 로봇컵 참가를 환영합니다!</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Music Player (SoundCloud) -->
+    <div class="music-player">
+        <iframe width="100%" height="70" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/1759530474&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"></iframe>
+    </div>
+
+    <script>
+        // --- SVGs for Profiles ---
+        const STAR_SVG = `<svg viewBox="0 0 20 20" fill="yellow"><polygon points="10,1 13,7 19,8 14,13 15,19 10,16 5,19 6,13 1,8 7,7"/></svg>`;
+        
+        // Killer (Bullet Bill) - Meaner design with Mouth and Fire
+        const BULLET_SVG = `
+            <div class="bullet-fire"></div>
+            <svg viewBox="0 0 40 40" fill="black">
+                <!-- Bullet Body -->
+                <path d="M5,10 H30 A10,10 0 0,1 30,30 H5 Z" fill="black" />
+                <!-- Angry Eye -->
+                <path d="M25,12 L35,18" stroke="white" stroke-width="2" />
+                <circle cx="30" cy="18" r="3" fill="white"/>
+                <circle cx="31" cy="18" r="1.5" fill="black"/>
+                <!-- Mean Mouth -->
+                <path d="M25,25 Q32,28 36,24" stroke="white" stroke-width="2" fill="none" />
+                <!-- Arm -->
+                <rect x="8" y="16" width="10" height="6" fill="#444" rx="2"/>
+                <rect x="6" y="18" width="4" height="2" fill="white" opacity="0.5"/>
+            </svg>`;
+
+        // --- Canvas Loading ---
+        const canvas = document.getElementById('starCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 150; canvas.height = 150;
+        let frame = 0;
+
+        function drawStar() {
+            ctx.clearRect(0, 0, 150, 150);
+            const color = ['#FFF', '#FFD700', '#FFA500'][Math.floor(frame/5)%3];
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            for(let i=0; i<5; i++){
+                ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*50+75, -Math.sin((18+i*72)/180*Math.PI)*50+75);
+                ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*25+75, -Math.sin((54+i*72)/180*Math.PI)*25+75);
+            }
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle='#000'; ctx.fillRect(63, 65, 6, 15); ctx.fillRect(81, 65, 6, 15);
+            frame++;
+            if(document.getElementById('loading-screen').style.display !== 'none') requestAnimationFrame(drawStar);
+        }
+
+        function showLoading(callback) {
+            const ls = document.getElementById('loading-screen');
+            ls.style.display = 'flex'; ls.style.opacity = '1';
+            frame = 0; drawStar();
+            setTimeout(() => {
+                ls.style.opacity = '0';
+                setTimeout(() => { ls.style.display = 'none'; if(callback) callback(); }, 1200);
+            }, 1000);
+        }
+
+        function navTo(num) {
+            showLoading(() => {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(`page-${num}`).classList.add('active');
+                document.getElementById('gauge-inner').style.width = (num/3*100)+'%';
+                document.getElementById('gauge-title').innerText = ['메인 페이지','상세 페이지','마무리 페이지'][num-1];
+            });
+        }
+
+        let profileToggle = true;
+        function addComment(e) {
+            const input = document.getElementById('guestMsg');
+            const list = document.getElementById('commentList');
+            if(!input.value.trim()) return;
+
+            const rect = document.querySelector('.btn').getBoundingClientRect();
+            const x = e.clientX || rect.left + rect.width / 2;
+            const y = e.clientY || rect.top + rect.height / 2;
+            spawnCoins(x, y);
+
+            const div = document.createElement('div');
+            div.className = 'guest-entry';
+            const icon = profileToggle ? STAR_SVG : BULLET_SVG;
+            profileToggle = !profileToggle;
+
+            div.innerHTML = `
+                <div class="profile-icon">${icon}</div>
+                <div class="guest-content"><span>GUEST:</span>${input.value}</div>
+            `;
+            
+            list.prepend(div);
+            input.value = '';
+            list.scrollTop = 0;
+        }
+
+        function spawnCoins(x, y) {
+            for(let i=0; i<4; i++) {
+                setTimeout(() => {
+                    const coin = document.createElement('div');
+                    coin.className = 'coin-effect';
+                    coin.style.left = (x - 15) + 'px';
+                    coin.style.top = (y - 20) + 'px';
+                    document.body.appendChild(coin);
+                    setTimeout(() => coin.remove(), 600);
+                }, i * 150);
+            }
+        }
+
+        function spawnMushroom(e) {
+            if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('.guestbook-list') || e.target.closest('.music-player')) return;
+            const m = document.createElement('div');
+            m.className = 'mushroom';
+            m.innerHTML = `<svg viewBox="0 0 40 40"><path d="M5,20 Q5,5 20,5 Q35,5 35,20 L35,25 Q35,30 20,30 Q5,30 5,25 Z" fill="red"/><rect x="12" y="30" width="16" height="10" fill="#f0d0b0"/><circle cx="15" cy="15" r="4" fill="white"/><circle cx="25" cy="12" r="3" fill="white"/></svg>`;
+            m.style.left = (e.clientX - 22) + 'px'; m.style.top = (e.clientY - 22) + 'px';
+            document.body.appendChild(m);
+            setTimeout(() => m.remove(), 800);
+        }
+
+        function initClouds() {
+            const container = document.getElementById('clouds');
+            const types = ['cloud-lg', 'cloud-sm'];
+            for(let i=0; i<25; i++) { // Even more clouds for full coverage
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud ' + types[i % 2];
+                cloud.style.top = (Math.random() * 95) + '%';
+                cloud.style.animationDuration = (Math.random() * 25 + 20) + 's';
+                cloud.style.animationDelay = (Math.random() * 30) + 's';
+                container.appendChild(cloud);
+            }
+        }
+
+        window.onload = () => {
+            initClouds();
+            showLoading(() => { document.getElementById('app-container').style.display = 'flex'; });
+        };
+    </script>
+</body>
+</html>
