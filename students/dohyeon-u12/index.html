@@ -1,1 +1,544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 한국 로보컵 오픈 대회 - KFC. SiRUS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sirius-blue: #000a1a;
+            --sirius-bright: #e6f3ff;
+            --neon-pink: #ff00ff;
+            --neon-blue: #00ffff;
+        }
 
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--sirius-blue);
+            color: white;
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Canvas Background */
+        #starCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: auto;
+        }
+
+        /* Rocket Animation for Page 1 */
+        .rocket {
+            position: absolute;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 100px;
+            z-index: 5;
+            transition: bottom 5s ease-in;
+            display: none;
+        }
+        #page1.active .rocket {
+            display: block;
+            animation: rocket-launch 10s infinite;
+        }
+        @keyframes rocket-launch {
+            0% { bottom: -100px; transform: translateX(-50%) scale(1); opacity: 1; }
+            30% { bottom: 120vh; transform: translateX(-50%) scale(0.5); opacity: 0; }
+            100% { bottom: 120vh; opacity: 0; }
+        }
+
+        /* Gauge Progress Bar */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 20px;
+        }
+
+        .gauge-label {
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            color: var(--sirius-bright);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .gauge-bar-outer {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .gauge-bar-inner {
+            height: 100%;
+            width: 25%;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        /* Page Management */
+        .page {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+            padding: 20px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .page.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .title-main {
+            font-size: clamp(2rem, 8vw, 4rem);
+            font-weight: 900;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            z-index: 10;
+        }
+
+        .team-info {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2.5rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .neon-text {
+            font-size: clamp(1.5rem, 6vw, 3.5rem);
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 7px #fff, 0 0 10px #fff, 0 0 21px #fff, 0 0 42px var(--neon-pink), 0 0 82px var(--neon-pink), 0 0 92px var(--neon-pink), 0 0 102px var(--neon-pink), 0 0 151px var(--neon-pink);
+            animation: flicker 1.5s infinite alternate;
+        }
+
+        @keyframes flicker {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% {
+                text-shadow: 0 0 7px #fff, 0 0 10px #fff, 0 0 21px #fff, 0 0 42px var(--neon-pink), 0 0 82px var(--neon-pink), 0 0 92px var(--neon-pink), 0 0 102px var(--neon-pink);
+            }
+            20%, 24%, 55% {       
+                text-shadow: none;
+            }
+        }
+
+        .nav-btn {
+            margin-top: 2rem;
+            padding: 12px 40px;
+            border: 2px solid var(--neon-blue);
+            background: rgba(0, 255, 255, 0.1);
+            color: var(--neon-blue);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            position: relative;
+            z-index: 110;
+        }
+
+        .nav-btn:hover {
+            background: var(--neon-blue);
+            color: var(--sirius-blue);
+            box-shadow: 0 0 30px var(--neon-blue);
+            transform: scale(1.05);
+        }
+
+        /* Sniper Game Styles */
+        #game-container {
+            width: 100%;
+            max-width: 900px;
+            height: 550px;
+            background-color: #000;
+            background-image: url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            border: 4px solid #333;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 1rem;
+            cursor: none;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        /* Night overlay for city */
+        .city-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 5, 20, 0.4);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* Scope Effect */
+        #scope {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border: 3px solid rgba(255, 0, 0, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 50;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, transparent 35%, rgba(0, 0, 0, 0.85) 75%);
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.6);
+        }
+
+        #scope::before, #scope::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 0, 0, 0.6);
+        }
+        #scope::before { width: 100%; height: 2px; top: 50%; left: 0; }
+        #scope::after { height: 100%; width: 2px; left: 50%; top: 0; }
+
+        /* Alien Target (Ultra Small for Challenge) */
+        .target {
+            position: absolute;
+            width: 20px; /* 크기를 35px에서 20px로 대폭 축소 */
+            height: 20px;
+            cursor: none;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            z-index: 30;
+            filter: drop-shadow(0 0 5px #4ade80);
+        }
+
+        .flash {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60;
+        }
+
+        .shoot-anim {
+            animation: shoot-flash 0.15s ease-out;
+        }
+
+        @keyframes shoot-flash {
+            0% { opacity: 0.5; }
+            100% { opacity: 0; }
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ff3333;
+            text-shadow: 0 0 10px #000;
+            z-index: 70;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="starCanvas"></canvas>
+
+    <div class="progress-container">
+        <div id="gaugeTitle" class="gauge-label">메인 페이지</div>
+        <div class="gauge-bar-outer">
+            <div id="gaugeInner" class="gauge-bar-inner"></div>
+        </div>
+    </div>
+
+    <!-- Page 1 -->
+    <section id="page1" class="page active">
+        <div class="rocket">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L9 9H15L12 2Z" fill="#ff4d4d"/>
+                <path d="M9 9H15V18C15 19.6569 13.6569 21 12 21C10.3431 21 9 19.6569 9 18V9Z" fill="#cccccc"/>
+                <path d="M9 15L6 19V9H9V15Z" fill="#999999"/>
+                <path d="M15 15L18 19V9H15V15Z" fill="#999999"/>
+                <circle cx="12" cy="13" r="2" fill="#333333"/>
+                <path d="M10 21L12 24L14 21H10Z" fill="#ff9900">
+                    <animate attributeName="opacity" values="1;0.5;1" dur="0.2s" repeatCount="indefinite" />
+                </path>
+            </svg>
+        </div>
+        <h1 class="title-main">2026 한국 로보컵 오픈 대회</h1>
+        <div class="team-info">
+            <h2 class="text-3xl font-bold mb-3 text-cyan-400">Team: KFC. SiRUS</h2>
+            <p class="text-xl opacity-90 tracking-widest font-light">이지호 • 최윤우 • 박도현</p>
+        </div>
+        <button class="nav-btn" onclick="nextPage(2)">상세 리포트 보기</button>
+    </section>
+
+    <!-- Page 2 -->
+    <section id="page2" class="page">
+        <h2 class="text-3xl font-bold mb-8 text-cyan-200">대회 상세 리뷰</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+            <div class="bg-black/40 p-6 rounded-xl border-l-4 border-cyan-500 text-left">
+                <h3 class="text-cyan-400 font-bold mb-2">1. 가장 아쉬운 점</h3>
+                <p>슈퍼 팀에서 우리 팀 프로그램을 못썼다.</p>
+            </div>
+            <div class="bg-black/40 p-6 rounded-xl border-l-4 border-cyan-500 text-left">
+                <h3 class="text-cyan-400 font-bold mb-2">2. 개선해야 할 점</h3>
+                <p>프로그램을 더 잘 만들어야 된다.</p>
+            </div>
+            <div class="bg-black/40 p-6 rounded-xl border-l-4 border-cyan-500 text-left">
+                <h3 class="text-cyan-400 font-bold mb-2">3. 우리 팀이 잘한 점</h3>
+                <p>화를 안내고 참았다.</p>
+            </div>
+            <div class="bg-black/40 p-6 rounded-xl border-l-4 border-cyan-500 text-left">
+                <h3 class="text-cyan-400 font-bold mb-2">4. 대회를 통해 배운 점</h3>
+                <p>프로그램을 더 잘 만들어야 우리 걸 쓸 수 있다.</p>
+            </div>
+        </div>
+        <button class="nav-btn" onclick="nextPage(3)">극한 저격 훈련 시작</button>
+    </section>
+
+    <!-- Page 3: Sniper Game -->
+    <section id="page3" class="page">
+        <h2 class="text-2xl font-bold mb-2 text-red-500">EXPERT SNIPER: GHOST HUNTER</h2>
+        <p class="text-sm opacity-80 mb-4">도시에 숨은 초소형 외계인 20마리를 소탕하세요! (매우 정밀한 조준 필요)</p>
+        <div id="game-container">
+            <div class="city-overlay"></div>
+            <div id="flash-effect" class="flash"></div>
+            <div id="scope"></div>
+            <div class="score-display">ELIMINATED: <span id="game-score">0</span> / 20</div>
+        </div>
+        <button id="game-next-btn" class="nav-btn hidden" onclick="nextPage(4)">임무 완료</button>
+    </section>
+
+    <!-- Page 4 -->
+    <section id="page4" class="page">
+        <div class="mb-12">
+            <h2 class="gauge-label mb-6" style="font-size: 1.2rem; opacity: 0.7;">대회 마무리 한 줄 평</h2>
+            <div class="neon-text">"다음에 는 더 잘해야 겠다"</div>
+        </div>
+        <button class="nav-btn" onclick="nextPage(1)">다시 보기</button>
+    </section>
+
+    <script>
+        const canvas = document.getElementById('starCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playGunshotSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.4, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < audioCtx.sampleRate * 0.4; i++) output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.05));
+            
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = noiseBuffer;
+            
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+            
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            stars = [];
+            for (let i = 0; i < 200; i++) stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 1.5,
+                t: Math.random() * 10
+            });
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(s => {
+                s.t += 0.02;
+                const alpha = 0.1 + (Math.sin(s.t) + 1) * 0.2;
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        // Sniper Game Logic
+        const scope = document.getElementById('scope');
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('game-score');
+        const gameNextBtn = document.getElementById('game-next-btn');
+        const flashEffect = document.getElementById('flash-effect');
+        
+        let gameScore = 0;
+        const targetGoal = 20;
+        let activeTargetTimeout = null;
+
+        gameContainer.addEventListener('mousemove', (e) => {
+            const rect = gameContainer.getBoundingClientRect();
+            scope.style.left = `${e.clientX - rect.left}px`;
+            scope.style.top = `${e.clientY - rect.top}px`;
+        });
+
+        gameContainer.addEventListener('mousedown', () => {
+            playGunshotSound();
+            flashEffect.classList.remove('shoot-anim');
+            void flashEffect.offsetWidth; 
+            flashEffect.classList.add('shoot-anim');
+            
+            scope.style.transform = `translate(-50%, -80%) scale(1.15)`;
+            setTimeout(() => scope.style.transform = `translate(-50%, -50%) scale(1.0)`, 70);
+        });
+
+        function createAlienSVG() {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("viewBox", "0 0 64 64");
+            
+            const head = document.createElementNS(svgNS, "path");
+            head.setAttribute("d", "M32 8C18 8 8 18 8 32C8 46 18 56 32 56C46 56 56 46 56 32C56 18 46 8 32 8Z");
+            head.setAttribute("fill", "#4ade80");
+            
+            const leftEye = document.createElementNS(svgNS, "ellipse");
+            leftEye.setAttribute("cx", "22"); leftEye.setAttribute("cy", "28");
+            leftEye.setAttribute("rx", "6"); leftEye.setAttribute("ry", "10");
+            leftEye.setAttribute("fill", "black");
+            
+            const rightEye = document.createElementNS(svgNS, "ellipse");
+            rightEye.setAttribute("cx", "42"); rightEye.setAttribute("cy", "28");
+            rightEye.setAttribute("rx", "6"); rightEye.setAttribute("ry", "10");
+            rightEye.setAttribute("fill", "black");
+            
+            svg.appendChild(head);
+            svg.appendChild(leftEye);
+            svg.appendChild(rightEye);
+            return svg;
+        }
+
+        function createTarget() {
+            if (gameScore >= targetGoal) return;
+            const oldTarget = gameContainer.querySelector('.target');
+            if (oldTarget) oldTarget.remove();
+
+            const target = document.createElement('div');
+            target.className = 'target';
+            target.appendChild(createAlienSVG());
+            
+            const x = Math.random() * (gameContainer.clientWidth - 50) + 25;
+            const y = Math.random() * (gameContainer.clientHeight * 0.75) + 40; 
+            
+            target.style.left = `${x}px`;
+            target.style.top = `${y}px`;
+            target.style.transform = 'scale(0)';
+            
+            setTimeout(() => target.style.transform = 'scale(1)', 10);
+
+            // 더 빠른 은폐 시간 (1초로 단축)
+            activeTargetTimeout = setTimeout(() => {
+                if (target.parentNode) {
+                    target.style.opacity = '0';
+                    target.style.transform = 'scale(0)';
+                    setTimeout(() => {
+                        if (target.parentNode) target.remove();
+                        if (gameScore < targetGoal) createTarget();
+                    }, 200);
+                }
+            }, 1000);
+
+            target.onmousedown = (e) => {
+                e.stopPropagation();
+                playGunshotSound();
+                clearTimeout(activeTargetTimeout);
+                
+                gameScore++;
+                scoreElement.innerText = gameScore;
+                
+                target.style.transform = 'scale(2) rotate(45deg)';
+                target.style.opacity = '0';
+                
+                flashEffect.classList.remove('shoot-anim');
+                void flashEffect.offsetWidth; 
+                flashEffect.classList.add('shoot-anim');
+                
+                setTimeout(() => {
+                    if (target.parentNode) target.remove();
+                    if (gameScore < targetGoal) setTimeout(createTarget, 300);
+                    else {
+                        gameNextBtn.classList.remove('hidden');
+                        scope.style.display = 'none';
+                        gameContainer.style.cursor = 'default';
+                        gameContainer.innerHTML = '<div class="flex items-center justify-center h-full text-4xl text-green-500 font-bold bg-black/80">CITY SECURED</div>';
+                    }
+                }, 150);
+            };
+            gameContainer.appendChild(target);
+        }
+
+        function initGame() {
+            gameScore = 0;
+            scoreElement.innerText = gameScore;
+            gameNextBtn.classList.add('hidden');
+            scope.style.display = 'block';
+            gameContainer.querySelectorAll('.target').forEach(t => t.remove());
+            if (activeTargetTimeout) clearTimeout(activeTargetTimeout);
+            createTarget();
+        }
+
+        function nextPage(num) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page${num}`).classList.add('active');
+            const progress = (num / 4) * 100;
+            document.getElementById('gaugeInner').style.width = `${progress}%`;
+            document.getElementById('gaugeTitle').innerText = ["메인 페이지", "상세 페이지", "도시 소탕 작전", "마무리 페이지"][num-1];
+            if (num === 3) initGame();
+            else if (activeTargetTimeout) clearTimeout(activeTargetTimeout);
+        }
+
+        window.onload = () => { resize(); animate(); };
+        window.onresize = resize;
+    </script>
+</body>
+</html>
