@@ -1,1 +1,883 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 한국 로보컵 오픈 - K.F.C.ChikenTender</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;700&display=swap');
 
+        :root {
+            --tetris-z: #ff4d4d;
+            --tetris-s: #4dff4d;
+            --tetris-j: #4d4dff;
+            --tetris-l: #ff994d;
+            --tetris-o: #ffff4d;
+            --tetris-i: #4dffff;
+            --tetris-t: #994dff;
+            --bg-dark: #0a0a0c;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* Glitch Effect */
+        .glitch-wrapper { position: relative; }
+        .glitch-text {
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 3.5rem;
+            position: relative;
+            display: inline-block;
+            line-height: 1.2;
+        }
+        .glitch-text::before, .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark);
+        }
+        .glitch-text::before {
+            left: 2px;
+            text-shadow: -2px 0 #ff00c1;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+        .glitch-text::after {
+            left: -2px;
+            text-shadow: -2px 0 #00fff9, 2px 2px #ff00c1;
+            animation: glitch-anim2 1s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim {
+            0% { clip: rect(31px, 9999px, 94px, 0); transform: skew(0.85deg); }
+            5% { clip: rect(70px, 9999px, 71px, 0); transform: skew(0.1deg); }
+            100% { clip: rect(67px, 9999px, 62px, 0); transform: skew(0.6deg); }
+        }
+        @keyframes glitch-anim2 {
+            0% { clip: rect(10px, 9999px, 20px, 0); transform: translateX(-2px); }
+            50% { clip: rect(30px, 9999px, 40px, 0); transform: translateX(2px); }
+            100% { clip: rect(50px, 9999px, 60px, 0); transform: translateX(0); }
+        }
+
+        /* Neon Effect */
+        .neon-text {
+            font-family: 'Black Han Sans', sans-serif;
+            color: #fff;
+            text-shadow: 0 0 7px #fff, 0 0 10px #fff, 0 0 42px var(--tetris-i), 0 0 82px var(--tetris-i);
+            animation: neon-flicker 1.5s infinite alternate;
+        }
+        @keyframes neon-flicker {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+            20%, 24%, 55% { opacity: 0.7; }
+        }
+
+        /* Progress Bar */
+        #progress-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            z-index: 1000;
+        }
+        .gauge-bar {
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .gauge-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--tetris-t), var(--tetris-i));
+            transition: width 0.5s ease;
+        }
+        .page-title {
+            text-align: center;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--tetris-i);
+        }
+
+        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+
+        .page {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+            padding: 20px; text-align: center;
+        }
+        .page.active { opacity: 1; visibility: visible; }
+
+        .content-card {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid var(--tetris-j);
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 850px;
+            width: 100%;
+            box-shadow: 0 0 40px rgba(77, 77, 255, 0.2);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .tetris-btn {
+            margin-top: 1rem;
+            padding: 0.8rem 1.5rem;
+            background: transparent;
+            border: 2px solid #fff;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 4px;
+        }
+        .tetris-btn:hover:not(:disabled) {
+            background: #fff; color: #000;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+        .tetris-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .detail-item {
+            margin-bottom: 1.5rem; text-align: left;
+            border-left: 4px solid var(--tetris-t);
+            padding: 0.8rem 1.2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0 10px 10px 0;
+        }
+        .detail-item h3 { color: var(--tetris-i); font-weight: bold; margin-bottom: 0.5rem; }
+
+        /* Game Container */
+        #game-area {
+            display: flex; gap: 20px; align-items: flex-start;
+            background: #111; padding: 20px; border-radius: 10px;
+            border: 2px solid #333;
+        }
+        canvas#tetris { border: 2px solid #444; background: #000; }
+        .side-panel { display: flex; flex-direction: column; gap: 15px; text-align: left; min-width: 120px; }
+        .stat-box { background: #222; padding: 10px; border: 1px solid #444; border-radius: 5px; }
+        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
+        .stat-value { font-size: 1.2rem; font-family: monospace; color: var(--tetris-i); }
+        .controls-hint { font-size: 0.7rem; color: #666; margin-top: 10px; line-height: 1.4; }
+        
+        /* Indicators */
+        .indicator {
+            position: absolute; font-weight: bold;
+            font-size: 1.5rem; opacity: 0; transition: all 0.5s ease;
+            pointer-events: none; z-index: 10;
+        }
+        #tspin-indicator { color: var(--tetris-t); text-shadow: 0 0 10px var(--tetris-t); }
+        #tetris-indicator { color: var(--tetris-i); text-shadow: 0 0 10px var(--tetris-i); }
+        #perfect-indicator { color: #fff; text-shadow: 0 0 15px #fff, 0 0 30px var(--tetris-i); font-size: 2rem; }
+        #combo-indicator { color: var(--tetris-s); text-shadow: 0 0 10px var(--tetris-s); }
+
+        @media (max-width: 640px) {
+            .glitch-text { font-size: 2.2rem; }
+            #game-area { transform: scale(0.8); }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="progress-container">
+        <div id="page-label" class="page-title">Intro</div>
+        <div class="gauge-bar">
+            <div id="gauge-fill" class="gauge-fill"></div>
+        </div>
+    </div>
+
+    <!-- Page 1: Main (Intro) -->
+    <div id="page-1" class="page active">
+        <div class="glitch-wrapper">
+            <h1 class="glitch-text" data-text="2026 한국 로보컵 오픈">2026 한국 로보컵 오픈</h1>
+        </div>
+        <div class="mt-8 space-y-3">
+            <p class="font-bold text-3xl text-[var(--tetris-o)] tracking-wider">Team: K.F.C.ChikenTender</p>
+            <p class="text-lg">Members: 김찬희, 박도현, 정이찬</p>
+        </div>
+        <button class="tetris-btn" onclick="nextPage(2)">대회 회고록 확인</button>
+    </div>
+
+    <!-- Page 2: Details (Reflection) -->
+    <div id="page-2" class="page">
+        <div class="content-card">
+            <h2 class="text-2xl font-bold mb-6 text-center text-[var(--tetris-t)]">대회 회고록</h2>
+            <div class="detail-item">
+                <h3>1. 가장 아쉬운 점</h3>
+                <p>스스로 더 열심히 노력해서 완성도 있는 프로그램을 구현하지 못한 것이 아쉬웠음. 팀원과 화합해서 월드1 점수를 더 높였으면 좋았을 것 같음. 현실적으로 월드2 개발이 불가능한 상황이었기에 월드1에 집중했으면 어땠을까 함.</p>
+            </div>
+            <div class="detail-item">
+                <h3>2. 개선해야 할 점</h3>
+                <p>환경의 제약이 생기더라도 유연하게 대처할 뿐 아니라 일부 내용은 받아들이고 충분한 조치가 끝나면 대회 퍼포먼스에 전념해야 한다. 팀원과의 화합을 중요시하고 전략적으로 역할을 변경하며 해야 할 것 같음.</p>
+            </div>
+            <div class="detail-item">
+                <h3>3. 우리 팀이 잘한 점</h3>
+                <p>심판 혹은 다른 팀과의 적절한 소통을 통해 보다 원활한 대회 소통 환경을 조성함. 제약이 생긴 상황에서도 경기를 전체 3등이라는 준수한 성적으로 마무리함.</p>
+            </div>
+            <div class="detail-item">
+                <h3>4. 대회를 통해 배운 점</h3>
+                <p>항상 규범에 따라야 하는 것은 아니나, 언제나 자신만의 규칙이나 양심을 지키며 살아야 한다는 걸 느꼈다. 모두가 나와 같은 생각을 하는 것은 아니고, 항상 남들과 같은 생각을 해야 하는 것은 아니라고 생각했다.</p>
+            </div>
+            <div class="flex justify-between mt-4">
+                <button class="tetris-btn" onclick="nextPage(1)">이전</button>
+                <button class="tetris-btn" onclick="nextPage(3)">미션: 테트리스 시작</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 3: Game (Tetris) - 방명록 바로 전 단계 -->
+    <div id="page-3" class="page">
+        <h2 class="text-2xl font-bold mb-4 text-[var(--tetris-i)]">FINAL MISSION: 4,000점 달성하기</h2>
+        <div id="game-area" class="relative">
+            <div id="tspin-indicator" class="indicator">T-SPIN!</div>
+            <div id="tetris-indicator" class="indicator">TETRIS!</div>
+            <div id="perfect-indicator" class="indicator">PERFECT CLEAR!</div>
+            <div id="combo-indicator" class="indicator">COMBO x0</div>
+            
+            <div class="side-panel">
+                <div class="stat-box">
+                    <div class="stat-label">HOLD (Shift)</div>
+                    <canvas id="hold-canvas" width="80" height="80"></canvas>
+                </div>
+                <div class="controls-hint">
+                    ← → : 이동<br>
+                    ↑ : 회전 (시계)<br>
+                    Ctrl : 회전 (반시계)<br>
+                    A : 180도 회전<br>
+                    ↓ : 소프트 드롭<br>
+                    Space : 하드 드롭<br>
+                    Shift : 홀드
+                </div>
+            </div>
+            <canvas id="tetris" width="200" height="400"></canvas>
+            <div class="side-panel">
+                <div class="stat-box">
+                    <div class="stat-label">SCORE</div>
+                    <div id="score" class="stat-value">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">COMBO</div>
+                    <div id="combo-val" class="stat-value">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">NEXT (5)</div>
+                    <canvas id="next-canvas" width="80" height="300"></canvas>
+                </div>
+                <button id="start-btn" class="tetris-btn text-xs" onclick="startGame()">게임 시작</button>
+            </div>
+        </div>
+        <div class="flex gap-4">
+            <button class="tetris-btn" onclick="nextPage(2)">이전</button>
+            <button id="next-mission-btn" class="tetris-btn" disabled onclick="nextPage(4)">방명록 남기기 (잠김)</button>
+        </div>
+    </div>
+
+    <!-- Page 4: Closing (방명록) -->
+    <div id="page-4" class="page">
+        <h2 class="neon-text text-5xl md:text-7xl mb-16">"잘 놀다 갑니다."</h2>
+        <button class="tetris-btn w-64" onclick="openGuestbook()">방명록 작성</button>
+        <button class="mt-4 text-sm opacity-50 underline" onclick="nextPage(1)">처음으로</button>
+    </div>
+
+    <script>
+        // --- Web Audio API BGM & SFX ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let bgmSource = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playSound(freq, type, duration, volume = 0.1) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        // BGM Sequencer (Korobeiniki)
+        const melody = [
+            [659.25, 4], [493.88, 8], [523.25, 8], [587.33, 4], [523.25, 8], [493.88, 8],
+            [440.00, 4], [440.00, 8], [523.25, 8], [659.25, 4], [587.33, 8], [523.25, 8],
+            [493.88, 4.5], [523.25, 8], [587.33, 4], [659.25, 4],
+            [523.25, 4], [440.00, 4], [440.00, 4], [0, 4],
+            [587.33, 3], [698.46, 8], [880.00, 4], [783.99, 8], [698.46, 8],
+            [659.25, 3], [523.25, 8], [659.25, 4], [587.33, 8], [523.25, 8],
+            [493.88, 4], [493.88, 8], [523.25, 8], [587.33, 4], [659.25, 4],
+            [523.25, 4], [440.00, 4], [440.00, 4], [0, 4]
+        ];
+
+        function playBGM() {
+            if (!audioCtx || bgmSource) return;
+            let time = audioCtx.currentTime + 0.1;
+            const tempo = 150; 
+            const beatUnit = 60 / tempo;
+
+            function scheduleNotes() {
+                melody.forEach(([freq, duration]) => {
+                    if (freq > 0) {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, time);
+                        gain.gain.setValueAtTime(0.05, time);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, time + (beatUnit * (16 / duration)) * 0.9);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(time);
+                        osc.stop(time + (beatUnit * (16 / duration)));
+                    }
+                    time += (beatUnit * (16 / duration));
+                });
+                bgmSource = setTimeout(scheduleNotes, (time - audioCtx.currentTime) * 1000);
+            }
+            scheduleNotes();
+        }
+
+        function stopBGM() {
+            if (bgmSource) {
+                clearTimeout(bgmSource);
+                bgmSource = null;
+            }
+        }
+
+        function sfxMove() { playSound(200, 'square', 0.05, 0.03); }
+        function sfxRotate() { playSound(400, 'square', 0.1, 0.05); }
+        function sfxDrop() { playSound(100, 'sawtooth', 0.2, 0.1); }
+        function sfxClear() { 
+            playSound(880, 'triangle', 0.2, 0.1);
+            setTimeout(() => playSound(1320, 'triangle', 0.3, 0.1), 100);
+        }
+
+        // --- Tetris Game Logic ---
+        let currentPage = 1;
+        const totalPages = 4;
+        const pageNames = ["Intro", "Reflection", "Mini Game", "Closing"];
+
+        const tCanvas = document.getElementById('tetris');
+        const tCtx = tCanvas.getContext('2d');
+        const nCanvas = document.getElementById('next-canvas');
+        const nCtx = nCanvas.getContext('2d');
+        const hCanvas = document.getElementById('hold-canvas');
+        const hCtx = hCanvas.getContext('2d');
+
+        const grid = 20;
+        const rows = 20;
+        const cols = 10;
+        
+        let board = Array.from({length: rows}, () => Array(cols).fill(0));
+        let score = 0;
+        let comboCount = 0;
+        let gameActive = false;
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+        let holdPiece = null;
+        let canHold = true;
+
+        let bag = [];
+        let lockTimer = null;
+        const LOCK_DELAY = 500; 
+
+        let lastMoveWasRotate = false;
+
+        const tetrominos = {
+            'I': { shape: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: '#4dffff' },
+            'J': { shape: [[1,0,0],[1,1,1],[0,0,0]], color: '#4d4dff' },
+            'L': { shape: [[0,0,1],[1,1,1],[0,0,0]], color: '#ff994d' },
+            'O': { shape: [[1,1],[1,1]], color: '#ffff4d' },
+            'S': { shape: [[0,1,1],[1,1,0],[0,0,0]], color: '#4dff4d' },
+            'T': { shape: [[0,1,0],[1,1,1],[0,0,0]], color: '#994dff' },
+            'Z': { shape: [[1,1,0],[0,1,1],[0,0,0]], color: '#ff4d4d' }
+        };
+
+        const keys = Object.keys(tetrominos);
+        let player = { pos: {x: 0, y: 0}, matrix: null, nextQueue: [], type: '', rotationState: 0 };
+
+        const KICK_DATA = [
+            [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]], // 0->1
+            [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],     // 1->2
+            [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],    // 2->3
+            [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]]   // 3->0
+        ];
+
+        function shuffleBag() {
+            const newBag = [...keys];
+            for (let i = newBag.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newBag[i], newBag[j]] = [newBag[j], newBag[i]];
+            }
+            return newBag;
+        }
+
+        function getNextFromBag() {
+            if (bag.length === 0) bag = shuffleBag();
+            return bag.pop();
+        }
+
+        function fillNextQueue() {
+            while (player.nextQueue.length < 6) {
+                player.nextQueue.push(getNextFromBag());
+            }
+        }
+
+        function createPiece(type) {
+            return JSON.parse(JSON.stringify(tetrominos[type].shape));
+        }
+
+        function drawMatrix(matrix, offset, context, colorOverride = null, isGhost = false) {
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        if (isGhost) {
+                            context.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                            context.lineWidth = 1;
+                            context.strokeRect((x + offset.x) * grid + 1, (y + offset.y) * grid + 1, grid - 3, grid - 3);
+                        } else {
+                            context.fillStyle = colorOverride || value;
+                            context.fillRect((x + offset.x) * grid, (y + offset.y) * grid, grid - 1, grid - 1);
+                        }
+                    }
+                });
+            });
+        }
+
+        function getGhostPos() {
+            let ghostPos = { x: player.pos.x, y: player.pos.y };
+            while (!collide(board, { ...player, pos: { x: ghostPos.x, y: ghostPos.y + 1 } })) {
+                ghostPos.y++;
+            }
+            return ghostPos;
+        }
+
+        function drawBoard() {
+            tCtx.fillStyle = '#000';
+            tCtx.fillRect(0, 0, tCanvas.width, tCanvas.height);
+            
+            board.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        tCtx.fillStyle = value;
+                        tCtx.fillRect(x * grid, y * grid, grid - 1, grid - 1);
+                    }
+                });
+            });
+
+            const ghost = getGhostPos();
+            drawMatrix(player.matrix, ghost, tCtx, null, true);
+            drawMatrix(player.matrix, player.pos, tCtx, tetrominos[player.type].color);
+        }
+
+        function drawSide() {
+            nCtx.fillStyle = '#222';
+            nCtx.fillRect(0, 0, nCanvas.width, nCanvas.height);
+            for (let i = 0; i < 5; i++) {
+                const nextType = player.nextQueue[i];
+                if (nextType) {
+                    drawMatrix(tetrominos[nextType].shape, {x: 0.5, y: i * 3 + 0.5}, nCtx, tetrominos[nextType].color);
+                }
+            }
+
+            hCtx.fillStyle = '#222';
+            hCtx.fillRect(0, 0, hCanvas.width, hCanvas.height);
+            if (holdPiece) {
+                drawMatrix(tetrominos[holdPiece].shape, {x: 0.5, y: 0.5}, hCtx, tetrominos[holdPiece].color);
+            }
+        }
+
+        function collide(board, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 && (board[y + o.y] === undefined || board[y + o.y][x + o.x] === undefined || board[y + o.y][x + o.x] !== 0)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function merge(board, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        board[y + player.pos.y][x + player.pos.x] = tetrominos[player.type].color;
+                    }
+                });
+            });
+        }
+
+        function rotateMatrix(matrix, dir) {
+            const count = (dir + 4) % 4;
+            for (let i = 0; i < count; i++) {
+                for (let y = 0; y < matrix.length; ++y) {
+                    for (let x = 0; x < y; ++x) {
+                        [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+                    }
+                }
+                matrix.forEach(row => row.reverse());
+            }
+        }
+
+        function playerReset() {
+            fillNextQueue();
+            player.type = player.nextQueue.shift();
+            player.matrix = createPiece(player.type);
+            player.pos.y = 0;
+            player.pos.x = Math.floor(cols / 2) - Math.floor(player.matrix[0].length / 2);
+            player.rotationState = 0;
+            
+            if (collide(board, player)) {
+                board.forEach(row => row.fill(0));
+                score = 0;
+                comboCount = 0;
+                bag = [];
+                player.nextQueue = [];
+                updateScore();
+                stopBGM();
+                alert("Game Over! 다시 도전해보세요.");
+                document.getElementById('start-btn').innerText = "게임 시작";
+                document.getElementById('start-btn').disabled = false;
+                gameActive = false;
+            }
+            canHold = true;
+            lastMoveWasRotate = false;
+            if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+            drawSide();
+        }
+
+        function playerDrop() {
+            player.pos.y++;
+            lastMoveWasRotate = false;
+            if (collide(board, player)) {
+                player.pos.y--;
+                startLockTimer();
+            } else {
+                if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+            }
+            dropCounter = 0;
+        }
+
+        function startLockTimer() {
+            if (lockTimer) return;
+            lockTimer = setTimeout(() => {
+                if (collide(board, { ...player, pos: { ...player.pos, y: player.pos.y + 1 } })) {
+                    const isTspin = checkTSpin();
+                    merge(board, player);
+                    playerReset();
+                    arenaSweep(isTspin);
+                    updateScore();
+                }
+                lockTimer = null;
+            }, LOCK_DELAY);
+        }
+
+        function playerMove(dir) {
+            player.pos.x += dir;
+            lastMoveWasRotate = false;
+            if (collide(board, player)) {
+                player.pos.x -= dir;
+            } else {
+                sfxMove();
+                if (lockTimer) {
+                    clearTimeout(lockTimer);
+                    lockTimer = null;
+                    startLockTimer();
+                }
+            }
+        }
+
+        function playerRotate(dir = 1) {
+            const originalMatrix = JSON.parse(JSON.stringify(player.matrix));
+            const originalPos = { ...player.pos };
+            const prevState = player.rotationState;
+            
+            rotateMatrix(player.matrix, dir);
+            player.rotationState = (player.rotationState + (dir === -1 ? 3 : dir)) % 4;
+
+            const kicks = KICK_DATA[prevState] || [[0,0]];
+            let success = false;
+
+            for (let i = 0; i < kicks.length; i++) {
+                const [dx, dy] = kicks[i];
+                player.pos.x += dx;
+                player.pos.y -= dy;
+
+                if (!collide(board, player)) {
+                    success = true;
+                    break;
+                }
+                player.pos.x = originalPos.x;
+                player.pos.y = originalPos.y;
+            }
+
+            if (!success) {
+                player.matrix = originalMatrix;
+                player.rotationState = prevState;
+            } else {
+                sfxRotate();
+                lastMoveWasRotate = true;
+                if (lockTimer) {
+                    clearTimeout(lockTimer);
+                    lockTimer = null;
+                    startLockTimer();
+                }
+            }
+        }
+
+        function checkTSpin() {
+            if (player.type !== 'T' || !lastMoveWasRotate) return false;
+            let corners = 0;
+            const cx = player.pos.x;
+            const cy = player.pos.y;
+            const checkCoords = [[0,0], [0,2], [2,0], [2,2]];
+            checkCoords.forEach(([dy, dx]) => {
+                const targetY = cy + dy;
+                const targetX = cx + dx;
+                if (targetY < 0 || targetY >= rows || targetX < 0 || targetX >= cols || board[targetY][targetX] !== 0) {
+                    corners++;
+                }
+            });
+            return corners >= 3;
+        }
+
+        function playerHold() {
+            if (!canHold) return;
+            if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
+            if (!holdPiece) {
+                holdPiece = player.type;
+                playerReset();
+            } else {
+                const temp = player.type;
+                player.type = holdPiece;
+                player.matrix = createPiece(player.type);
+                holdPiece = temp;
+                player.pos.y = 0;
+                player.pos.x = Math.floor(cols / 2) - Math.floor(player.matrix[0].length / 2);
+                player.rotationState = 0;
+            }
+            sfxMove();
+            canHold = false;
+            drawSide();
+        }
+
+        function arenaSweep(isTspin) {
+            let rowCount = 0;
+            outer: for (let y = rows - 1; y > 0; --y) {
+                for (let x = 0; x < cols; ++x) {
+                    if (board[y][x] === 0) continue outer;
+                }
+                const row = board.splice(y, 1)[0].fill(0);
+                board.unshift(row);
+                ++y;
+                rowCount++;
+            }
+
+            if (rowCount > 0) {
+                sfxClear();
+                comboCount++;
+                let basePoints = 0;
+                if (rowCount === 4) {
+                    basePoints = 1000;
+                    showIndicator('tetris-indicator');
+                } else {
+                    basePoints = rowCount * (isTspin ? 400 : 200);
+                    if (isTspin) showIndicator('tspin-indicator');
+                }
+                
+                score += basePoints * comboCount;
+                if (comboCount > 1) showComboEffect(comboCount);
+
+                let isPerfect = true;
+                board.forEach(row => {
+                    if (row.some(val => val !== 0)) isPerfect = false;
+                });
+                
+                if (isPerfect) {
+                    score += 10000;
+                    showIndicator('perfect-indicator');
+                }
+            } else {
+                comboCount = 0;
+            }
+            updateComboUI();
+        }
+
+        function showIndicator(id) {
+            const el = document.getElementById(id);
+            el.style.opacity = '1';
+            el.style.left = '50%';
+            el.style.top = '50%';
+            el.style.transform = 'translate(-50%, -50%) scale(1.5)';
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 800);
+        }
+
+        function showComboEffect(count) {
+            const el = document.getElementById('combo-indicator');
+            el.innerText = `COMBO x${count}`;
+            el.style.opacity = '1';
+            el.style.left = '50%';
+            el.style.top = '65%';
+            el.style.transform = 'translate(-50%, -50%) scale(1.2)';
+            setTimeout(() => {
+                el.style.opacity = '0';
+            }, 600);
+        }
+
+        function updateComboUI() {
+            document.getElementById('combo-val').innerText = comboCount;
+        }
+
+        function updateScore() {
+            document.getElementById('score').innerText = score;
+            if (score >= 4000) {
+                const btn = document.getElementById('next-mission-btn');
+                btn.disabled = false;
+                btn.innerText = "방명록 남기기 (미션 완료!)";
+                btn.classList.add('neon-text');
+            }
+        }
+
+        function gameLoop(time = 0) {
+            if (!gameActive) return;
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) {
+                playerDrop();
+            }
+            drawBoard();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            if (gameActive) return;
+            initAudio();
+            playBGM();
+            board.forEach(row => row.fill(0));
+            score = 0;
+            comboCount = 0;
+            bag = [];
+            player.nextQueue = [];
+            updateScore();
+            updateComboUI();
+            gameActive = true;
+            playerReset();
+            document.getElementById('start-btn').innerText = "진행 중...";
+            document.getElementById('start-btn').disabled = true;
+            gameLoop();
+        }
+
+        window.addEventListener('keydown', event => {
+            if (!gameActive) return;
+            if (event.keyCode === 37) playerMove(-1); // Left
+            else if (event.keyCode === 39) playerMove(1); // Right
+            else if (event.keyCode === 40) playerDrop(); // Down
+            else if (event.keyCode === 38) playerRotate(1); // Up
+            else if (event.keyCode === 17) playerRotate(-1); // Ctrl
+            else if (event.keyCode === 65) playerRotate(2); // A
+            else if (event.keyCode === 32) { // Space
+                sfxDrop();
+                const ghost = getGhostPos();
+                player.pos.y = ghost.y;
+                const isTspin = checkTSpin();
+                merge(board, player);
+                playerReset();
+                arenaSweep(isTspin);
+                updateScore();
+            }
+            else if (event.keyCode === 16) playerHold(); // Shift
+        });
+
+        function updateProgress() {
+            const fill = document.getElementById('gauge-fill');
+            const label = document.getElementById('page-label');
+            const percent = ((currentPage - 1) / (totalPages - 1)) * 100;
+            fill.style.width = percent + '%';
+            label.innerText = pageNames[currentPage - 1];
+        }
+
+        function nextPage(pageNum) {
+            gameActive = false;
+            stopBGM();
+            const currentActive = document.querySelector('.page.active');
+            if (currentActive) currentActive.classList.remove('active');
+            
+            setTimeout(() => {
+                currentPage = pageNum;
+                const targetPage = document.getElementById(`page-${pageNum}`);
+                if (targetPage) targetPage.classList.add('active');
+                updateProgress();
+            }, 400);
+        }
+
+        function openGuestbook() {
+            const modal = document.createElement('div');
+            modal.className = "fixed inset-0 flex items-center justify-center z-[3000] p-4 bg-black/80 backdrop-blur-sm";
+            modal.innerHTML = `
+                <div class="bg-[#1a1a1e] border-2 border-[var(--tetris-i)] p-8 rounded-xl max-w-sm w-full text-center">
+                    <h3 class="text-[var(--tetris-i)] font-bold text-xl mb-4">방명록 남기기</h3>
+                    <div class="mb-4 p-3 bg-white/5 rounded border border-white/10">
+                        <span class="text-xs text-gray-400">나의 테트리스 기록</span><br>
+                        <span class="text-2xl font-mono text-[var(--tetris-o)]">${score} 점</span>
+                    </div>
+                    <p class="mb-6 opacity-80 font-light text-sm">
+                        "K.F.C.ChikenTender 팀의 ${score}점 기록 보유자가 다녀갑니다!"<br><br>
+                        방명록 서버를 준비 중입니다. 팀원들에게 보낼 메시지를 마음속으로 남겨주세요!
+                    </p>
+                    <button class="tetris-btn mt-0 w-full" onclick="this.closest('.fixed').remove()">기록 저장 완료</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        function resize() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function bgAnimate() {
+            bgCtx.fillStyle = 'rgba(10, 10, 12, 0.1)';
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+            requestAnimationFrame(bgAnimate);
+        }
+        bgAnimate();
+
+        window.onload = updateProgress;
+    </script>
+</body>
+</html>
