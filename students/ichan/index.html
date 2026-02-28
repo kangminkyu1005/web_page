@@ -1,1 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 한국 로보컵 코리아 오픈 - K.F.C. ChickenTender</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&display=swap');
 
+        :root {
+            --kfc-red: #E4002B;
+            --kfc-black: #202124;
+            --kfc-white: #ffffff;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--kfc-black);
+            color: var(--kfc-white);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .kiosk-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .progress-header {
+            background: var(--kfc-red);
+            padding: 15px 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 20;
+        }
+
+        .gauge-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        #gauge-fill {
+            height: 100%;
+            width: 33%;
+            background: white;
+            transition: width 0.5s ease-in-out;
+        }
+
+        /* 말풍선 스타일 수정: 화면 안쪽(오른쪽)으로 배치 */
+        .speech-bubble {
+            position: absolute;
+            left: 110%; /* 대령 아이콘 오른쪽 */
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            color: black;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 30;
+        }
+        /* 말풍선 꼬리표 위치 수정 */
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 8px solid white;
+        }
+        .speech-bubble.show {
+            opacity: 1;
+            transform: translateY(-50%) translateX(10px);
+        }
+
+        .colonel-wrapper {
+            position: absolute;
+            top: 85px; /* 헤더 아래쪽 적절한 위치 */
+            left: 20px;
+            z-index: 15;
+            display: flex;
+            align-items: center;
+        }
+
+        .colonel-svg-container {
+            width: 80px;
+            height: 80px;
+            animation: bounceIn 1s ease-out;
+            filter: drop-shadow(0 5px 10px rgba(255,255,255,0.1));
+            cursor: pointer;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            flex-shrink: 0;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+            70% { transform: scale(1.1) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .page {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            animation: fadeIn 0.6s ease-out forwards;
+            text-align: center;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .kiosk-card {
+            background: white;
+            color: var(--kfc-black);
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border: 4px solid var(--kfc-red);
+            position: relative;
+            z-index: 12;
+        }
+
+        .btn-kfc {
+            background: var(--kfc-red);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: 900;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            margin-top: 20px;
+            box-shadow: 0 6px 0 #a3001f;
+        }
+
+        .btn-kfc:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #a3001f;
+        }
+
+        .heading-font {
+            font-family: 'Black Han Sans', sans-serif;
+            color: var(--kfc-red);
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            perspective: 1000px;
+        }
+
+        .card {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.4s;
+            cursor: pointer;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            border-radius: 12px;
+            border: 2px solid var(--kfc-red);
+        }
+
+        .card-back {
+            background-color: var(--kfc-red);
+            color: white;
+            font-weight: bold;
+        }
+
+        .card-front {
+            background-color: white;
+            transform: rotateY(180deg);
+        }
+
+        .game-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .set-menu-container {
+            width: 220px;
+            height: 180px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .game-overlay {
+            position: absolute;
+            inset: 0;
+            background: white;
+            border-radius: 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .colonel-wrapper { top: 75px; left: 10px; }
+            .colonel-svg-container { width: 60px; height: 60px; }
+            .speech-bubble { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="background-canvas"></canvas>
+
+    <!-- 대령 래퍼 -->
+    <div class="colonel-wrapper">
+        <div class="colonel-svg-container" onclick="rotateAndTalk()">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50 20C35 20 25 35 25 50C25 65 35 80 50 80C65 80 75 65 75 50C75 35 65 20 50 20Z" fill="white"/>
+                <path d="M30 40C25 35 30 25 50 25C70 25 75 35 70 40" stroke="#BBB" stroke-width="2" fill="none"/>
+                <rect x="36" y="48" width="10" height="6" rx="2" stroke="#222" stroke-width="2" fill="none"/>
+                <rect x="54" y="48" width="10" height="6" rx="2" stroke="#222" stroke-width="2" fill="none"/>
+                <line x1="46" y1="51" x2="54" y2="51" stroke="#222" stroke-width="2"/>
+                <path d="M42 65C45 62 55 62 58 65" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <path d="M44 78L50 74L56 78L50 82L44 78Z" fill="#111"/>
+                <circle cx="42" cy="78" r="3" fill="#111"/>
+                <circle cx="58" cy="78" r="3" fill="#111"/>
+                <path d="M47 68C48 69 52 69 53 68" stroke="#333" stroke-width="1.2" fill="none"/>
+            </svg>
+        </div>
+        <!-- 말풍선을 컨테이너 내부, 아이콘 오른쪽에 배치 -->
+        <div id="speech-bubble" class="speech-bubble">허허허! 치킨이 정말 맛있구먼!</div>
+    </div>
+
+    <div class="kiosk-container">
+        <header class="progress-header">
+            <div class="flex justify-between items-center text-white font-bold mb-1">
+                <span id="page-title">주문 시작하기</span>
+                <span id="page-step">1 / 3</span>
+            </div>
+            <div class="gauge-container">
+                <div id="gauge-fill"></div>
+            </div>
+        </header>
+
+        <main id="page-1" class="page active">
+            <div class="kiosk-card">
+                <h2 class="text-xl font-bold mb-2">WELCOME TO</h2>
+                <h1 class="heading-font text-4xl mb-6">2026 한국 로보컵<br>코리아 오픈</h1>
+                <div class="bg-gray-100 p-4 rounded-xl mb-6 border-l-8 border-red-600">
+                    <p class="text-gray-500 text-sm font-bold uppercase">Team Name</p>
+                    <p class="text-2xl font-black mb-3">K.F.C. ChickenTender</p>
+                    <p class="text-gray-500 text-sm font-bold uppercase">Members</p>
+                    <p class="text-lg font-bold">정이찬 · 김찬희 · 박도현</p>
+                </div>
+                <button class="btn-kfc w-full" onclick="nextPage(2)">대회 리포트 보기</button>
+            </div>
+        </main>
+
+        <main id="page-2" class="page">
+            <div class="kiosk-card">
+                <h2 class="heading-font text-3xl mb-6">성찰 및 분석</h2>
+                <div class="detail-item text-left mb-4 pb-2 border-b border-dashed border-gray-300">
+                    <span class="font-black text-red-600 text-sm block">1. 가장 아쉬운 점</span>
+                    <span class="text-lg font-bold">기존 프로그램을 그대로 활용한 점</span>
+                </div>
+                <div class="detail-item text-left mb-4 pb-2 border-b border-dashed border-gray-300">
+                    <span class="font-black text-red-600 text-sm block">2. 개선해야 할 점</span>
+                    <span class="text-lg font-bold">대회에 임하는 마음가짐</span>
+                </div>
+                <div class="detail-item text-left mb-4 pb-2 border-b border-dashed border-gray-300">
+                    <span class="font-black text-red-600 text-sm block">3. 우리 팀이 잘한 점</span>
+                    <span class="text-lg font-bold">적극적인 팀원 간 소통</span>
+                </div>
+                <div class="detail-item text-left mb-4 pb-2 border-b border-dashed border-gray-300">
+                    <span class="font-black text-red-600 text-sm block">4. 대회를 통해 배운 점</span>
+                    <span class="text-lg font-bold">공정함의 가치</span>
+                </div>
+                <button class="btn-kfc w-full" onclick="nextPage(3)">마무리 멘트 확인</button>
+            </div>
+        </main>
+
+        <main id="page-3" class="page">
+            <div class="kiosk-card flex flex-col items-center">
+                <div class="set-menu-container">
+                    <svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M140 50 L155 50 L150 120 L135 120 Z" fill="#E4002B" />
+                        <rect x="138" y="45" width="20" height="8" rx="2" fill="#DDD" />
+                        <rect x="146" y="30" width="3" height="20" fill="#333" />
+                        <text x="142" y="90" fill="white" font-size="8" font-weight="bold">COLA</text>
+                        <path d="M80 80 L120 80 L115 125 L85 125 Z" fill="#E4002B" />
+                        <rect x="85" y="60" width="6" height="30" rx="1" fill="#FFD700" />
+                        <rect x="94" y="55" width="6" height="35" rx="1" fill="#FFD700" />
+                        <rect x="103" y="58" width="6" height="32" rx="1" fill="#FFD700" />
+                        <rect x="111" y="65" width="6" height="25" rx="1" fill="#FFD700" />
+                        <path d="M80 80 Q100 95 120 80" fill="none" stroke="white" stroke-width="2" />
+                        <path d="M30 100 Q65 75 100 100" fill="#E08E45" />
+                        <rect x="30" y="100" width="70" height="5" fill="#32CD32" />
+                        <rect x="30" y="105" width="70" height="8" rx="2" fill="#5D4037" />
+                        <path d="M30 113 Q65 125 100 113" fill="#E08E45" />
+                        <circle cx="45" cy="88" r="1.5" fill="white" opacity="0.6" />
+                        <circle cx="65" cy="85" r="1.5" fill="white" opacity="0.6" />
+                        <circle cx="85" cy="88" r="1.5" fill="white" opacity="0.6" />
+                        <g transform="translate(40, 50) rotate(-30)">
+                            <path d="M0 0 Q15 -10 30 15 L25 40 Q15 45 5 40 Z" fill="#CD853F" />
+                            <path d="M22 38 L22 55 Q22 60 18 60 Q14 60 14 55 L14 38" fill="#F5F5F5" />
+                        </g>
+                    </svg>
+                </div>
+                
+                <button class="btn-kfc w-full" onclick="openGame()">대회 한 줄 평 게임하기</button>
+                <button class="mt-4 text-gray-400 font-bold" onclick="nextPage(1)">처음으로 돌아가기</button>
+            </div>
+        </main>
+    </div>
+
+    <div id="game-modal" class="game-modal">
+        <div class="kiosk-card relative overflow-hidden">
+            <div id="game-inner-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="heading-font text-2xl">기억력 테스트</h3>
+                    <button onclick="closeGame()" class="text-gray-400 text-2xl">&times;</button>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">카드 짝을 맞추세요! 조커(🃏)를 조심하세요.</p>
+                <div id="game-grid" class="game-grid"></div>
+            </div>
+
+            <div id="success-overlay" class="game-overlay p-6">
+                <div class="text-red-600 font-black text-sm mb-2 uppercase tracking-widest">Congratulations!</div>
+                <div class="heading-font text-4xl md:text-5xl mb-8 leading-tight animate-bounce text-center">
+                    "위반 행위를<br>하지말자"
+                </div>
+                <button class="btn-kfc w-full" onclick="closeGame()">확인</button>
+            </div>
+
+            <div id="failure-overlay" class="game-overlay p-6">
+                <div class="text-6xl mb-4">🃏</div>
+                <div class="heading-font text-4xl text-gray-800 mb-6">"실패지롱"</div>
+                <div class="text-red-600 font-bold">주문이 취소되었습니다.</div>
+                <p class="text-gray-400 text-sm mt-2">잠시 후 다시 시작합니다...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let colonelRotation = 0;
+        let bubbleTimer = null;
+
+        function rotateAndTalk() {
+            const container = document.querySelector('.colonel-svg-container');
+            colonelRotation += 90;
+            container.style.transform = `rotate(${colonelRotation}deg)`;
+
+            const bubble = document.getElementById('speech-bubble');
+            bubble.classList.add('show');
+
+            if (bubbleTimer) clearTimeout(bubbleTimer);
+            bubbleTimer = setTimeout(() => {
+                bubble.classList.remove('show');
+            }, 2000);
+        }
+
+        const canvas = document.getElementById('background-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        const emojiList = ['🍗', '🍟'];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor() { this.init(true); }
+            init(isInitial = false) {
+                this.x = Math.random() * canvas.width;
+                this.y = isInitial ? Math.random() * canvas.height : -100;
+                this.size = Math.random() * 25 + 20;
+                this.speed = Math.random() * 1.5 + 1.2;
+                this.emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotSpeed = (Math.random() - 0.5) * 0.04;
+                this.drift = (Math.random() - 0.5) * 0.5 - 0.5; 
+            }
+            update() {
+                this.y += this.speed;
+                this.x += this.drift;
+                this.rotation += this.rotSpeed;
+                if (this.y > canvas.height + 100) this.init(false);
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, 0, 0);
+                ctx.restore();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 40; i++) particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        initParticles(); animate();
+
+        function nextPage(pageNum) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageNum}`).classList.add('active');
+            const titles = ["주문 시작하기", "상세 리포트", "마무리"];
+            document.getElementById('gauge-fill').style.width = `${(pageNum/3)*100}%`;
+            document.getElementById('page-title').innerText = titles[pageNum - 1];
+            document.getElementById('page-step').innerText = `${pageNum} / 3`;
+        }
+
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let isLock = false;
+        const cardIcons = ['🍗', '🍗', '🍟', '🍟', '🍔', '🍔', '🥤', '🥤', '🃏'];
+
+        function openGame() {
+            document.getElementById('game-modal').style.display = 'flex';
+            hideOverlays();
+            initGame();
+        }
+
+        function closeGame() {
+            document.getElementById('game-modal').style.display = 'none';
+        }
+
+        function hideOverlays() {
+            document.getElementById('success-overlay').style.display = 'none';
+            document.getElementById('failure-overlay').style.display = 'none';
+            document.getElementById('game-inner-content').style.opacity = '1';
+        }
+
+        function initGame() {
+            const grid = document.getElementById('game-grid');
+            grid.innerHTML = "";
+            flippedCards = [];
+            matchedPairs = 0;
+            isLock = false;
+            const shuffled = [...cardIcons].sort(() => Math.random() - 0.5);
+            shuffled.forEach((icon) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.icon = icon;
+                card.innerHTML = `
+                    <div class="card-face card-back">KFC</div>
+                    <div class="card-face card-front">${icon}</div>
+                `;
+                card.onclick = () => flipCard(card);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard(card) {
+            if (isLock || card.classList.contains('flipped')) return;
+            card.classList.add('flipped');
+            if (card.dataset.icon === '🃏') {
+                isLock = true;
+                showFailureOverlay();
+                setTimeout(() => { hideOverlays(); initGame(); }, 2000);
+                return;
+            }
+            flippedCards.push(card);
+            if (flippedCards.length === 2) checkMatch();
+        }
+
+        function checkMatch() {
+            isLock = true;
+            const [card1, card2] = flippedCards;
+            if (card1.dataset.icon === card2.dataset.icon) {
+                matchedPairs++;
+                flippedCards = [];
+                isLock = false;
+                if (matchedPairs === 4) showSuccessOverlay();
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    flippedCards = [];
+                    isLock = false;
+                }, 800);
+            }
+        }
+
+        function showSuccessOverlay() {
+            document.getElementById('success-overlay').style.display = 'flex';
+            document.getElementById('game-inner-content').style.opacity = '0.1';
+        }
+
+        function showFailureOverlay() {
+            document.getElementById('failure-overlay').style.display = 'flex';
+            document.getElementById('game-inner-content').style.opacity = '0.1';
+        }
+    </script>
+</body>
+</html>
