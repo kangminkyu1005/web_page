@@ -1,1 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPACE MISSION: K.F.C.NoVa - 2026 RoboCup</title>
+    <!-- Google Fonts: Space & Sci-Fi Vibes -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Exo+2:wght@300;600&family=Noto+Sans+KR:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --space-blue: #00d4ff;
+            --deep-void: #020205;
+            --nebula-purple: #bc13fe;
+            --star-white: #ffffff;
+            --ui-border: rgba(0, 212, 255, 0.3);
+            --main-font: 'Orbitron', sans-serif;
+            --sub-font: 'Exo 2', sans-serif;
+            --kr-font: 'Noto Sans KR', sans-serif;
+        }
 
+        /* --- Global Cursor Fix --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            cursor: none !important; 
+        }
+
+        body {
+            background-color: var(--deep-void);
+            color: var(--star-white);
+            font-family: var(--kr-font);
+            overflow: hidden;
+            line-height: 1.6;
+        }
+
+        /* --- UFO Cursor Follower --- */
+        #ufo-follower {
+            position: fixed;
+            width: 80px;
+            height: 60px;
+            pointer-events: none;
+            z-index: 10000;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease-out;
+            filter: drop-shadow(0 0 10px var(--space-blue));
+            will-change: transform;
+        }
+
+        @keyframes ufo-float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        .ufo-body {
+            animation: ufo-float 3s infinite ease-in-out;
+        }
+
+        /* --- Background & Explosion Canvas --- */
+        #spaceCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9998; 
+            pointer-events: none; 
+        }
+
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* --- Sci-Fi HUD Progress Bar & Home Button --- */
+        .hud-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(to bottom, rgba(0, 10, 20, 0.4), transparent);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hud-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 90%;
+            max-width: 1200px;
+            margin-bottom: 10px;
+        }
+
+        .mission-status {
+            font-family: var(--main-font);
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: var(--space-blue);
+            text-transform: uppercase;
+        }
+
+        /* 홈 버튼 스타일 */
+        .home-btn {
+            font-family: var(--main-font);
+            font-size: 10px;
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--space-blue);
+            border: 1px solid var(--space-blue);
+            padding: 5px 15px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .home-btn:hover {
+            background: var(--space-blue);
+            color: var(--deep-void);
+            box-shadow: 0 0 15px var(--space-blue);
+        }
+
+        .gauge-container {
+            width: 60%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--space-blue), var(--nebula-purple));
+            width: 25%; 
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 15px var(--space-blue);
+        }
+
+        /* --- Page Structure --- */
+        .page {
+            display: none;
+            height: 100vh;
+            width: 100%;
+            padding: 100px 40px 40px;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 1s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .page.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* --- Space UI Components (Glassmorphism) --- */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--ui-border);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.05);
+        }
+
+        h1 {
+            font-family: var(--main-font);
+            font-size: 2.5rem;
+            color: var(--star-white);
+            margin-bottom: 10px;
+            letter-spacing: 5px;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+        }
+
+        .sub-title {
+            font-family: var(--sub-font);
+            font-size: 1.2rem;
+            color: var(--space-blue);
+            margin-bottom: 30px;
+            text-transform: uppercase;
+        }
+
+        .mission-log {
+            text-align: left;
+            margin: 20px 0;
+            padding: 20px;
+            border-left: 2px solid var(--space-blue);
+            background: rgba(0, 212, 255, 0.03);
+        }
+
+        .log-category {
+            font-family: var(--main-font);
+            color: var(--space-blue);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        /* --- Game Styling --- */
+        #gameContainer {
+            width: 600px;
+            height: 200px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--ui-border);
+            position: relative;
+            overflow: hidden;
+            margin: 20px auto;
+        }
+        #dino {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            background: var(--space-blue);
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--space-blue);
+        }
+        .cactus {
+            width: 25px;
+            height: 35px;
+            position: absolute;
+            bottom: 0;
+            right: -30px;
+            background: #ff4d4d;
+            box-shadow: 0 0 10px #ff4d4d;
+        }
+        #scoreDisplay {
+            font-family: var(--main-font);
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: var(--space-blue);
+            font-size: 1.2rem;
+        }
+
+        .space-btn {
+            font-family: var(--main-font);
+            background: rgba(0, 212, 255, 0.05);
+            color: var(--space-blue);
+            border: 1px solid var(--space-blue);
+            padding: 12px 35px;
+            transition: all 0.3s;
+            margin-top: 25px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 20;
+        }
+
+        .space-btn:hover {
+            background: var(--space-blue);
+            color: var(--deep-void);
+            box-shadow: 0 0 20px var(--space-blue);
+            transform: scale(1.05);
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        @keyframes spacePulse {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.05); opacity: 1; }
+        }
+    </style>
+</head>
+<body 
+    onmousemove="moveUfo(event)"
+    onclick="createExplosion(event)" 
+    onkeydown="handleKeyInteraction(event, true)" 
+    onkeyup="handleKeyInteraction(event, false)"
+>
+
+    <!-- UFO Cursor Element -->
+    <div id="ufo-follower">
+        <svg class="ufo-body" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+            <path d="M30 40 L70 40 L90 80 L10 80 Z" fill="rgba(0, 212, 255, 0.2)" />
+            <ellipse cx="50" cy="40" rx="45" ry="12" fill="#222" stroke="#00d4ff" stroke-width="2"/>
+            <path d="M25 35 Q50 10 75 35" fill="rgba(0, 212, 255, 0.4)" stroke="#00d4ff" stroke-width="2"/>
+            <circle cx="20" cy="40" r="2" fill="#fff">
+                <animate attributeName="opacity" values="0;1;0" dur="1s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="50" cy="45" r="2" fill="#fff">
+                <animate attributeName="opacity" values="0;1;0" dur="1.2s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="80" cy="40" r="2" fill="#fff">
+                <animate attributeName="opacity" values="0;1;0" dur="1s" begin="0.5s" repeatCount="indefinite" />
+            </circle>
+        </svg>
+    </div>
+
+    <canvas id="spaceCanvas"></canvas>
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="hud-header">
+        <div class="hud-top-row">
+            <div id="statusLabel" class="mission-status">MISSION START: 2026-ROBOCUP</div>
+            <!-- 홈으로 가기 버튼 추가 -->
+            <button class="home-btn" onclick="nav(1)">[ Return to Base ]</button>
+        </div>
+        <div class="gauge-container">
+            <div id="gaugeBar" class="gauge-fill"></div>
+        </div>
+    </div>
+
+    <section id="page1" class="page active">
+        <div class="glass-panel">
+            <div style="font-size: 0.8rem; color: var(--space-blue); margin-bottom: 10px;">ID: SECTOR-7G / UNIT: KFC-NOVA</div>
+            <h1>K.F.C.NoVa</h1>
+            <div class="sub-title">2026 한국 로보컵 오픈</div>
+            <button class="space-btn" onclick="nav(2)">ENTER MISSION LOG</button>
+        </div>
+    </section>
+
+    <section id="page2" class="page">
+        <div class="glass-panel" style="overflow-y: auto; max-height: 80vh;">
+            <div class="sub-title" style="text-align: left; font-size: 1rem;">MISSION ANALYSIS</div>
+            <div class="mission-log"><span class="log-category">SUCCESS LOG [잘한 점]</span>world 1을 잘 만들어서 점수를 많이 냈다.</div>
+            <div class="mission-log"><span class="log-category">CRITICAL ERROR [아쉬운 점]</span>테스트 시간이 부족해 급하게 코드를 적용했다.</div>
+            <div class="mission-log"><span class="log-category">LEARNING CORE [배운 점]</span>테스트 시간을 충분히 확보해야 함을 깨달았다.</div>
+            <div class="btn-container">
+                <button class="space-btn" style="border-color: #666; color: #666;" onclick="nav(1)">PREVIOUS</button>
+                <button class="space-btn" onclick="nav(3)">MINI GAME</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="page3" class="page">
+        <div class="glass-panel">
+            <div class="sub-title">SECURITY CLEARANCE: VARIABLE JUMP MODE</div>
+            <p style="margin-bottom: 10px; font-size: 0.9rem; color: var(--space-blue);">[클릭 유지] 시간에 따라 점프 높이가 달라집니다! (목표: 250점)</p>
+            
+            <div id="gameContainer" 
+                onmousedown="jumpStart(); event.stopPropagation();" 
+                onmouseup="jumpEnd(); event.stopPropagation();"
+            >
+                <div id="dino"></div>
+                <div id="scoreDisplay">SCORE: 0</div>
+            </div>
+
+            <div class="btn-container">
+                <button class="space-btn" style="border-color: #666; color: #666;" onclick="nav(2); event.stopPropagation();">PREVIOUS</button>
+                <button class="space-btn" id="restartGameBtn" onclick="startGame(); event.stopPropagation();">START MISSION</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="page4" class="page">
+        <div class="glass-panel">
+            <div class="sub-title">FINAL TRANSMISSION</div>
+            <div style="margin: 60px 0;">
+                <p style="font-family: var(--main-font); font-size: 2.2rem; color: #fff; text-shadow: 0 0 20px var(--space-blue); animation: spacePulse 2s infinite alternate;">"재미있는 경험이었다."</p>
+            </div>
+            <div class="btn-container">
+                <button class="space-btn" style="border-color: #666; color: #666;" onclick="nav(3)">PREVIOUS</button>
+                <button class="space-btn" style="border-color: var(--nebula-purple); color: var(--nebula-purple);" onclick="nav(1)">RESTART MISSION</button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        /* --- UFO Tracking Logic --- */
+        const ufo = document.getElementById('ufo-follower');
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let ufoX = mouseX;
+        let ufoY = mouseY;
+        let lastX = mouseX;
+
+        function moveUfo(e) {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        }
+
+        function updateUfoPosition() {
+            ufoX += (mouseX - ufoX) * 0.12;
+            ufoY += (mouseY - ufoY) * 0.12;
+            const dx = ufoX - lastX;
+            const tilt = Math.max(Math.min(dx * 2, 25), -25);
+            ufo.style.left = `${ufoX}px`;
+            ufo.style.top = `${ufoY}px`;
+            ufo.style.transform = `translate(-50%, -50%) rotate(${tilt}deg)`;
+            lastX = ufoX;
+            requestAnimationFrame(updateUfoPosition);
+        }
+        updateUfoPosition();
+
+        /* --- Space Visual Logic --- */
+        const canvas = document.getElementById('spaceCanvas');
+        const ctx = canvas.getContext('2d');
+        const bgCanvas = document.getElementById('bgCanvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let stars = [], explosions = [];
+
+        function initCanvas() {
+            canvas.width = bgCanvas.width = window.innerWidth;
+            canvas.height = bgCanvas.height = window.innerHeight;
+            stars = [];
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.1,
+                    color: Math.random() > 0.1 ? '#fff' : '#00d4ff'
+                });
+            }
+        }
+
+        function createExplosion(e) {
+            // 버튼 클릭 시 내비게이션 기능 방해하지 않도록 체크 (내비게이션 버튼들은 click 이벤트를 이미 가짐)
+            const x = e.clientX, y = e.clientY;
+            
+            for (let i = 0; i < 15; i++) {
+                explosions.push({
+                    type: 'spark',
+                    x, y, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12,
+                    size: Math.random() * 5 + 2, life: 1.0, decay: 0.02,
+                    color: Math.random() > 0.5 ? '#00d4ff' : '#bc13fe'
+                });
+            }
+
+            const alienCount = Math.floor(Math.random() * 3) + 3;
+            for (let i = 0; i < alienCount; i++) {
+                explosions.push({
+                    type: 'alien',
+                    x, y, 
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: -Math.random() * 8 - 4,
+                    size: Math.random() * 10 + 20,
+                    life: 1.0, 
+                    decay: 0.012,
+                    rotation: (Math.random() - 0.5) * 0.4,
+                    color: `hsl(${Math.random() * 60 + 100}, 100%, 75%)`
+                });
+            }
+        }
+
+        function drawSpace() {
+            bgCtx.fillStyle = '#020205';
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+            stars.forEach(p => {
+                bgCtx.fillStyle = p.color;
+                bgCtx.beginPath(); bgCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2); bgCtx.fill();
+                p.y += p.speed; if (p.y > bgCanvas.height) p.y = 0;
+            });
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const p = explosions[i];
+                p.x += p.vx; 
+                p.y += p.vy;
+                if(p.type === 'alien') p.vy += 0.2; 
+                p.life -= p.decay;
+                if (p.life <= 0) { explosions.splice(i, 1); continue; }
+                ctx.globalAlpha = p.life;
+                if (p.type === 'spark') {
+                    ctx.fillStyle = p.color;
+                    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.PI * p.life);
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size); ctx.restore();
+                } else if (p.type === 'alien') {
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * (1 - p.life) * 20);
+                    ctx.scale(p.life * 1.2, p.life * 1.2);
+                    ctx.fillStyle = p.color || '#a0ff80';
+                    ctx.beginPath(); ctx.ellipse(0, 0, 15, 12, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath(); ctx.ellipse(-6, -2, 4, 6, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.ellipse(6, -2, 4, 6, -Math.PI / 4, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+            }
+            requestAnimationFrame(drawSpace);
+        }
+
+        /* --- Game Logic --- */
+        const dino = document.getElementById("dino");
+        const gameContainer = document.getElementById("gameContainer");
+        const scoreDisplay = document.getElementById("scoreDisplay");
+        let score = 0, gameActive = false, gameLoop;
+        let dinoY = 0, dinoVelocityY = 0, gravity = 0.6, jumpPower = -12;
+        let isHoldingJump = false, onGround = true;
+
+        function handleKeyInteraction(e, isDown) {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (isDown) jumpStart();
+                else jumpEnd();
+            }
+        }
+
+        function jumpStart() {
+            if (!gameActive) return;
+            isHoldingJump = true;
+            if (onGround) { dinoVelocityY = jumpPower; onGround = false; }
+        }
+
+        function jumpEnd() { isHoldingJump = false; }
+
+        function startGame() {
+            if (gameActive) return;
+            gameActive = true; score = 0; dinoY = 0; dinoVelocityY = 0; onGround = true;
+            scoreDisplay.innerText = "SCORE: 0";
+            document.querySelectorAll('.cactus').forEach(c => c.remove());
+            gameLoop = setInterval(() => {
+                let currentGravity = (dinoVelocityY < 0 && !isHoldingJump) ? gravity * 2.5 : gravity;
+                dinoVelocityY += currentGravity; dinoY -= dinoVelocityY;
+                if (dinoY <= 0) { dinoY = 0; dinoVelocityY = 0; onGround = true; }
+                dino.style.bottom = dinoY + "px";
+                score += 0.3; let roundedScore = Math.floor(score);
+                scoreDisplay.innerText = "SCORE: " + roundedScore;
+                if (roundedScore >= 250) { gameActive = false; clearInterval(gameLoop); nav(4); }
+                if (Math.random() < 0.018) createCactus();
+            }, 30);
+        }
+
+        function createCactus() {
+            const cactus = document.createElement("div");
+            cactus.classList.add("cactus");
+            gameContainer.appendChild(cactus);
+            let cactusPos = 600;
+            let moveInterval = setInterval(() => {
+                if (!gameActive) { clearInterval(moveInterval); return; }
+                if (cactusPos < -30) { clearInterval(moveInterval); cactus.remove(); }
+                let dR = dino.getBoundingClientRect(), cR = cactus.getBoundingClientRect();
+                if (dR.right > cR.left + 12 && dR.left < cR.right - 12 && dR.bottom > cR.top + 10) gameOver();
+                cactusPos -= 7; cactus.style.left = cactusPos + "px";
+            }, 20);
+        }
+
+        function gameOver() {
+            gameActive = false; clearInterval(gameLoop);
+            scoreDisplay.innerText = `GAMEOVER: ${Math.floor(score)}`;
+        }
+
+        function nav(num) {
+            const current = document.querySelector('.page.active');
+            const next = document.getElementById(`page${num}`);
+            
+            // 이미 해당 페이지면 아무것도 하지 않음
+            if (current === next) return;
+
+            if (current) {
+                current.style.opacity = '0';
+                setTimeout(() => {
+                    current.classList.remove('active');
+                    next.classList.add('active');
+                    setTimeout(() => next.style.opacity = '1', 50);
+                    document.getElementById('gaugeBar').style.width = (num / 4 * 100) + '%';
+                    document.getElementById('statusLabel').innerText = `SECTOR: ${titles[num-1]}`;
+                    gameActive = false; clearInterval(gameLoop);
+                }, 800);
+            }
+        }
+
+        const titles = ["MISSION START", "DATA ANALYSIS", "SECURITY CHECK", "FINAL REPORT"];
+        window.addEventListener('resize', initCanvas);
+        window.onload = () => { initCanvas(); drawSpace(); };
+    </script>
+</body>
+</html>
