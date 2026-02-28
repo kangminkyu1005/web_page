@@ -1,1 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 한국 로보컵 오픈 대회 회고록</title>
+    <style>
+        /* [ Font ] */
+        @font-face {
+            font-family: 'NeoDunggeunmo';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.3/NeoDunggeunmo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
 
+        /* [ Base Styles ] */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'NeoDunggeunmo', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #70c5ce;
+            color: #ffffff;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* [ Background Canvas - Sakura ] */
+        #sakuraCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* [ Flappy Bird Environment ] */
+        .city-bg {
+            position: absolute;
+            bottom: 110px;
+            width: 200%;
+            height: 150px;
+            background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png') repeat-x;
+            background-size: contain;
+            z-index: 0;
+            opacity: 0.6;
+            animation: scrollBg 45s linear infinite;
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 110px;
+            background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png') repeat-x;
+            z-index: 5;
+            animation: scrollBg 6s linear infinite;
+        }
+
+        @keyframes scrollBg {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        /* [ Header & Gauge Bar ] */
+        header {
+            position: relative;
+            z-index: 30;
+            width: 90%;
+            max-width: 500px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .page-title {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .gauge-container {
+            width: 100%;
+            height: 20px;
+            background-color: #533847;
+            border: 3px solid #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            width: 25%;
+            background-color: #f7941d;
+            transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* [ Page Container ] */
+        main {
+            position: relative;
+            z-index: 10;
+            flex-grow: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .page {
+            position: absolute;
+            width: 90%;
+            max-width: 450px;
+            background-color: #ded895;
+            border: 6px solid #533847;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.2);
+            color: #533847;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .page.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* [ Game Page - Full Screen ] */
+        #page2 {
+            max-width: 100%;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            background: transparent;
+            display: block;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            touch-action: none;
+        }
+
+        .game-ui {
+            position: absolute;
+            top: 80px;
+            width: 100%;
+            text-align: center;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        .timer-display {
+            font-size: 3.5rem;
+            color: white;
+            text-shadow: 4px 4px 0 #000;
+        }
+
+        /* [ Content Styles ] */
+        h1 { font-size: 1.4rem; margin-bottom: 1rem; color: #e63946; text-align: center; }
+        
+        .info-card {
+            background: #ffffff;
+            border: 4px solid #73bf2e;
+            padding: 1rem;
+            border-radius: 10px;
+            width: 100%;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .detail-item {
+            width: 100%;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px dashed #73bf2e;
+        }
+
+        .detail-label {
+            background: #73bf2e;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            display: inline-block;
+        }
+
+        .detail-text { font-size: 0.9rem; line-height: 1.4; word-break: keep-all; }
+
+        /* [ Credits ] */
+        .credits-window {
+            width: 100%;
+            height: 180px;
+            background: #000;
+            margin: 1rem 0;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid #533847;
+        }
+
+        .credits-content {
+            position: absolute;
+            width: 100%;
+            top: 100%;
+            text-align: center;
+            animation: scrollCredits 15s linear infinite;
+        }
+
+        @keyframes scrollCredits {
+            0% { top: 110%; }
+            100% { top: -250%; }
+        }
+
+        /* [ Buttons ] */
+        .btn {
+            background-color: #f7941d;
+            color: #fff;
+            border: 4px solid #ffffff;
+            padding: 10px 18px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 4px 0 #c47617;
+            outline: none;
+            z-index: 40;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0px 0 #c47617; }
+        .btn-green { background-color: #73bf2e; box-shadow: 0 4px 0 #5a9424; }
+        .btn-yellow { background-color: #f1c40f; box-shadow: 0 4px 0 #c29d0b; color: #533847; }
+        .btn-red { background-color: #e63946; box-shadow: 0 4px 0 #b22d38; }
+
+        .difficulty-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #gameOverUI {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(222, 216, 149, 0.98);
+            padding: 2.5rem;
+            border-radius: 15px;
+            border: 6px solid #533847;
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body onclick="tryPlayMusic()">
+
+    <canvas id="sakuraCanvas"></canvas>
+    <div class="city-bg"></div>
+    <div class="ground"></div>
+
+    <!-- 배경음악 및 효과음 설정 -->
+    <audio id="bgMusic" loop preload="auto">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- 날갯짓 소리 오디오 객체 -->
+    <audio id="wingSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/audio/wing.wav" type="audio/wav">
+    </audio>
+
+    <header>
+        <div class="page-title" id="pageTitle">메인 페이지</div>
+        <div class="gauge-container">
+            <div class="gauge-fill" id="gaugeBar"></div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Page 1: Main & Difficulty Selection -->
+        <section class="page active" id="page1">
+            <h1>2026 한국 로보컵 오픈 대회</h1>
+            <div class="info-card">
+                <p>팀 명: <span style="color:#f7941d">K.F.C. WAW</span></p>
+                <div style="margin-top:10px; font-size: 0.9rem; line-height: 1.4;">
+                    팀 원: <span style="color:#f7941d">여호준, 김주원, 황시윤, 강성윤</span>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; margin-bottom: 15px; color: #533847; text-align: center; line-height: 1.5;">
+                * 30초 동안 생존하여 리포트를 확인하세요!<br>버튼을 클릭하면 게임이 시작됩니다.
+            </p>
+            <div class="difficulty-group">
+                <button class="btn btn-green" onclick="startGameWithDifficulty('easy')">쉬움</button>
+                <button class="btn btn-yellow" onclick="startGameWithDifficulty('medium')">중간</button>
+                <button class="btn btn-red" onclick="startGameWithDifficulty('hard')">어려움</button>
+            </div>
+        </section>
+
+        <!-- Page 2: Game -->
+        <section class="page" id="page2">
+            <div class="game-ui">
+                <div class="timer-display" id="gameTimer">30</div>
+                <div id="gameMsg" style="color: white; text-shadow: 2px 2px 0 #000; margin-top: 5px;">화면을 터치하여 점프!</div>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+            
+            <div id="gameOverUI">
+                <h2 style="font-size:2.2rem; color:#e63946; margin-bottom:20px; text-shadow: 1px 1px 0 #fff;">GAME OVER</h2>
+                <button class="btn btn-green" onclick="movePage(1)">다시 선택하기</button>
+            </div>
+        </section>
+
+        <!-- Page 3: Details -->
+        <section class="page" id="page3">
+            <h1 style="color:#73bf2e;">생존 성공! 대회 기록</h1>
+            <div class="detail-item"><span class="detail-label">가장 아쉬운 점</span><p class="detail-text">첫 번째 경기에서 Teleport를 할 때 변수 초기화를 넣지 않아 상대 팀에게 역전 당했다.</p></div>
+            <div class="detail-item"><span class="detail-label">개선해야 할 점</span><p class="detail-text">디버깅을 할 때는 Deposit, Trap, Object, Teleport 등의 중요한 베이스 프로그램을 가장 먼저 확인한다.</p></div>
+            <div class="detail-item"><span class="detail-label">우리 팀이 잘한 점</span><p class="detail-text">경기 할 때 실수가 나왔어도 팀원들과 싸우진 않았다.</p></div>
+            <div class="detail-item"><span class="detail-label">배운 점</span><p class="detail-text">비록 이기진 못했지만 이번 대회에서 나왔던 실수들을 바탕으로 보완해가며 잘 작동하는 프로그램을 만들 것이다.</p></div>
+            <button class="btn btn-green" onclick="movePage(4)">엔딩 크레딧</button>
+        </section>
+
+        <!-- Page 4: Ending -->
+        <section class="page" id="page4">
+            <h1>대회 마무리</h1>
+            <p style="text-align:center; font-style:italic; color:#e63946; margin-bottom: 10px;">"여러모로 아쉬웠던 대회다."</p>
+            <div class="credits-window">
+                <div class="credits-content" id="credits">
+                    <h2 style="color:#f7941d; font-size:1.1rem; margin-bottom: 8px;">TEAM</h2>
+                    <p style="color:white; margin-bottom:20px; font-size: 1.2rem;">K.F.C. WAW</p>
+                    <h2 style="color:#f7941d; font-size:1.1rem; margin-bottom: 8px;">MEMBERS</h2>
+                    <p style="color:white; font-size: 1rem; margin-bottom: 4px;">여호준</p>
+                    <p style="color:white; font-size: 1rem; margin-bottom: 4px;">김주원</p>
+                    <p style="color:white; font-size: 1rem; margin-bottom: 4px;">황시윤</p>
+                    <p style="color:white; font-size: 1rem; margin-bottom: 4px;">강성윤</p>
+                    <h2 style="color:#f7941d; font-size:1.1rem; margin-top: 20px; margin-bottom: 8px;">TOURNAMENT</h2>
+                    <p style="color:white; font-size: 1rem;">2026 KOREA ROBOCUP OPEN</p>
+                    <h2 style="color:#f7941d; font-size:1.1rem; margin-top: 20px; margin-bottom: 8px;">SPECIAL THANKS</h2>
+                    <p style="color:white; font-size: 1rem;">ALL PARTICIPANTS</p>
+                </div>
+            </div>
+            <button class="btn btn-green" onclick="movePage(1)">처음으로 (리플레이)</button>
+        </section>
+    </main>
+
+    <script>
+        /* --- Audio Logic --- */
+        const bgMusic = document.getElementById('bgMusic');
+        const wingSound = document.getElementById('wingSound');
+        let musicStarted = false;
+
+        // 배경음악 재생 함수
+        function tryPlayMusic() {
+            if (!musicStarted) {
+                bgMusic.muted = false;
+                bgMusic.play().then(() => {
+                    musicStarted = true;
+                }).catch(e => console.log("Play error:", e));
+            } else if (bgMusic.paused) {
+                // 일시 정지 상태라면 다시 재생
+                bgMusic.play();
+            }
+        }
+
+        // 음악 정지 함수
+        function stopMusic() {
+            bgMusic.pause();
+            // 필요 시 시간을 0으로 되감으려면 아래 주석 해제
+            // bgMusic.currentTime = 0;
+        }
+
+        // 날갯짓 소리 재생 함수
+        function playWingSound() {
+            wingSound.currentTime = 0; 
+            wingSound.play().catch(e => {});
+        }
+
+        /* --- Navigation Logic --- */
+        let currentPage = 1;
+        const pageTitles = ["메인 페이지", "플래피 버드 챌린지", "상세 리포트", "마무리 페이지"];
+        const INITIAL_LIMIT = 30; 
+        
+        function movePage(pageNum) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            currentPage = pageNum;
+            const target = document.getElementById(`page${pageNum}`);
+            
+            setTimeout(() => {
+                target.classList.add('active');
+                document.getElementById('gaugeBar').style.width = (pageNum / 4 * 100) + "%";
+                document.getElementById('pageTitle').innerText = pageTitles[pageNum - 1];
+                
+                if(pageNum !== 2) {
+                    stopGame();
+                }
+            }, 50);
+        }
+
+        function startGameWithDifficulty(diff) {
+            currentDifficulty = diff;
+            tryPlayMusic(); 
+            movePage(2);
+            setTimeout(initGame, 100);
+        }
+
+        /* --- Sakura Effect --- */
+        const sCanvas = document.getElementById('sakuraCanvas');
+        const sCtx = sCanvas.getContext('2d');
+        let leaves = [];
+        function resizeSakura() { sCanvas.width = window.innerWidth; sCanvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeSakura);
+        resizeSakura();
+
+        class Leaf {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * sCanvas.width;
+                this.y = Math.random() * sCanvas.height - sCanvas.height;
+                this.size = Math.random() * 5 + 3;
+                this.speed = Math.random() * 1.2 + 0.5;
+                this.velX = Math.random() * 1 - 0.5;
+                this.angle = Math.random() * 360;
+                this.spin = Math.random() * 2 - 1;
+            }
+            update() {
+                this.y += this.speed;
+                this.x += this.velX;
+                this.angle += this.spin;
+                if (this.y > sCanvas.height) this.reset();
+            }
+            draw() {
+                sCtx.save();
+                sCtx.translate(this.x, this.y);
+                sCtx.rotate(this.angle * Math.PI / 180);
+                sCtx.fillStyle = '#ffb7c5';
+                sCtx.beginPath();
+                sCtx.ellipse(0, 0, this.size, this.size/2, 0, 0, Math.PI * 2);
+                sCtx.fill();
+                sCtx.restore();
+            }
+        }
+        for(let i=0; i<25; i++) leaves.push(new Leaf());
+
+        function animateSakura() {
+            sCtx.clearRect(0,0, sCanvas.width, sCanvas.height);
+            leaves.forEach(l => { l.update(); l.draw(); });
+            requestAnimationFrame(animateSakura);
+        }
+        animateSakura();
+
+        /* --- Flappy Bird Engine --- */
+        const gCanvas = document.getElementById('gameCanvas');
+        const gCtx = gCanvas.getContext('2d');
+        let isPlaying = false;
+        let gameTime = INITIAL_LIMIT;
+        let bird, pipes, frames, timerInterval;
+        let currentDifficulty = 'easy';
+        let birdImg = new Image();
+        birdImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png';
+
+        function initGame() {
+            gCanvas.width = window.innerWidth;
+            gCanvas.height = window.innerHeight;
+            
+            let speedMultiplier, spawnRate, gapSize, msg;
+            
+            switch(currentDifficulty) {
+                case 'hard':
+                    speedMultiplier = 3.8; spawnRate = 65; gapSize = 140;
+                    msg = "초고속 모드! 정신 바짝 차리세요!";
+                    break;
+                case 'medium':
+                    speedMultiplier = 2.4; spawnRate = 100; gapSize = 160;
+                    msg = "중간 단계: 밸런스 잡힌 속도입니다.";
+                    break;
+                case 'easy':
+                default:
+                    speedMultiplier = 1.6; spawnRate = 130; gapSize = 180;
+                    msg = "쉬움 모드: 천천히 비행하세요.";
+                    break;
+            }
+
+            bird = { 
+                x: 80, y: gCanvas.height / 2, velocity: 0, gravity: 0.17, lift: -4.0,    
+                w: 34, h: 24, rotation: 0, speed: speedMultiplier, rate: spawnRate, gap: gapSize
+            };
+            
+            pipes = [];
+            frames = 0;
+            gameTime = INITIAL_LIMIT;
+            isPlaying = true;
+            
+            document.getElementById('gameTimer').innerText = gameTime;
+            document.getElementById('gameOverUI').style.display = 'none';
+            document.getElementById('gameMsg').innerText = msg;
+            
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if(isPlaying) {
+                    gameTime--;
+                    document.getElementById('gameTimer').innerText = gameTime;
+                    if(gameTime <= 0) winGame();
+                }
+            }, 1000);
+
+            gameLoop();
+        }
+
+        function stopGame() {
+            isPlaying = false;
+            if(timerInterval) clearInterval(timerInterval);
+        }
+
+        function winGame() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            document.getElementById('gameMsg').innerText = "생존 성공!";
+            setTimeout(() => movePage(3), 1000);
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            stopMusic(); // 게임 오버 시 음악 정지
+            document.getElementById('gameOverUI').style.display = 'flex';
+        }
+
+        function gameLoop() {
+            if(!isPlaying) return;
+            gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+            bird.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, bird.velocity * 0.1));
+
+            gCtx.save();
+            gCtx.translate(bird.x, bird.y);
+            gCtx.rotate(bird.rotation);
+            if (birdImg.complete) {
+                gCtx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
+            } else {
+                gCtx.fillStyle = '#f7941d';
+                gCtx.fillRect(-bird.w/2, -bird.h/2, bird.w, bird.h);
+            }
+            gCtx.restore();
+
+            if(frames % bird.rate === 0) { 
+                const minH = 60;
+                const topH = Math.random() * (gCanvas.height - bird.gap - (minH * 2) - 110) + minH;
+                pipes.push({ x: gCanvas.width, top: topH, bottom: gCanvas.height - topH - bird.gap, w: 60 });
+            }
+
+            pipes.forEach((p) => {
+                p.x -= bird.speed; 
+                gCtx.fillStyle = '#73bf2e';
+                gCtx.strokeStyle = '#533847';
+                gCtx.lineWidth = 4;
+                gCtx.fillRect(p.x, 0, p.w, p.top);
+                gCtx.strokeRect(p.x, -5, p.w, p.top + 5);
+                gCtx.fillRect(p.x, gCanvas.height - p.bottom, p.w, p.bottom);
+                gCtx.strokeRect(p.x, gCanvas.height - p.bottom, p.w, p.bottom + 5);
+
+                const bx = bird.x - bird.w/2.5;
+                const by = bird.y - bird.h/2.5;
+                const bw = bird.w/1.2;
+                const bh = bird.h/1.2;
+                if(bx + bw > p.x && bx < p.x + p.w) {
+                    if(by < p.top || by + bh > gCanvas.height - p.bottom) gameOver();
+                }
+            });
+
+            pipes = pipes.filter(p => p.x > -100);
+            if(bird.y + bird.h/2 > gCanvas.height - 110 || bird.y - bird.h/2 < 0) gameOver();
+
+            frames++;
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Controls
+        function jump() { 
+            if(isPlaying) {
+                bird.velocity = bird.lift;
+                playWingSound();
+            } 
+            // 게임이 실행 중일 때(또는 메인 화면 등에서) 상호작용 시 음악 재생 시도
+            if(currentPage !== 2 || isPlaying) tryPlayMusic();
+        }
+        window.addEventListener('keydown', (e) => { 
+            if(e.code === 'Space' || e.code === 'ArrowUp') jump(); 
+        });
+        window.addEventListener('mousedown', (e) => { 
+            if(currentPage === 2 && !e.target.closest('.btn')) jump(); 
+        });
+        window.addEventListener('touchstart', (e) => { 
+            if(currentPage === 2 && !e.target.closest('.btn')) {
+                e.preventDefault(); jump(); 
+            }
+        }, {passive: false});
+
+        window.addEventListener('resize', () => {
+            if(currentPage === 2 && isPlaying) {
+                gCanvas.width = window.innerWidth;
+                gCanvas.height = window.innerHeight;
+            }
+            resizeSakura();
+        });
+    </script>
+</body>
+</html>
