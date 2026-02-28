@@ -1,1 +1,549 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 로보컵 - 마왕의 성 리포트</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Serif+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff3c3c;
+            --secondary: #7a28ff;
+            --accent: #ffd700;
+            --bg-dark: #0a0a0c;
+            --text-color: #d1d1d1;
+            --font-gothic: 'Cinzel', serif;
+            --font-main: 'Noto Serif KR', serif;
+        }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow: hidden;
+            line-height: 1.4;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #1a0a0a 0%, #050505 100%);
+        }
+
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 25px;
+            z-index: 100;
+        }
+
+        .gauge-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .page-title {
+            font-family: var(--font-gothic);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary);
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .gauge-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            width: 100%;
+            border: 1px solid rgba(255, 60, 60, 0.2);
+            position: relative;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #440000, var(--primary));
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease;
+        }
+
+        .page.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .gothic-card {
+            background: rgba(15, 5, 5, 0.95);
+            border: 1px solid #3d0000;
+            padding: 30px 40px;
+            text-align: center;
+            position: relative;
+            max-width: 650px;
+            width: 100%;
+            box-shadow: 0 0 40px rgba(0,0,0,1);
+            z-index: 10;
+        }
+
+        .team-name {
+            font-family: var(--font-gothic);
+            font-size: 2.5rem;
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .team-members {
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        /* --- Game Area Common --- */
+        .game-view {
+            width: 100%;
+            height: 320px;
+            background: #000;
+            border: 1px solid #222;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 15px;
+            box-shadow: inset 0 0 30px #200;
+            touch-action: none;
+        }
+
+        .btn {
+            background: #1a0000;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 30px;
+            font-family: var(--font-gothic);
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+
+        .btn:hover {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.85);
+            z-index: 500;
+        }
+
+        /* --- Game 1 Specific --- */
+        #player1 {
+            width: 40px;
+            height: 10px;
+            background: var(--primary);
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 15px var(--primary);
+            border-radius: 5px;
+        }
+        .item { position: absolute; width: 10px; height: 10px; background: var(--accent); border-radius: 50%; }
+        .obstacle { position: absolute; width: 12px; height: 12px; background: #555; transform: rotate(45deg); }
+
+        /* --- Game 2 Specific (Stealth) --- */
+        #stealth-player {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            border-radius: 2px;
+            box-shadow: 0 0 10px var(--accent);
+            z-index: 20;
+        }
+        #demon-eye {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 40px;
+            background: radial-gradient(circle, #ff0000, #330000);
+            border-radius: 50% 50% 0 0;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px #f00;
+        }
+        #demon-eye.watching {
+            height: 60px;
+            background: radial-gradient(circle, #fff, #f00, #300);
+            box-shadow: 0 0 40px #f00;
+        }
+        #finish-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .detail-label {
+            font-family: var(--font-gothic);
+            color: var(--primary);
+            font-weight: bold;
+            display: block;
+            margin-bottom: 3px;
+            font-size: 0.75rem;
+        }
+
+        .credits-wrap {
+            position: absolute;
+            bottom: -100%;
+            width: 100%;
+            text-align: center;
+        }
+
+        @keyframes creditsScroll {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-200vh); }
+        }
+
+        .credits-wrap.animate {
+            animation: creditsScroll 18s linear forwards;
+        }
+
+        @media (max-width: 600px) {
+            .report-grid { grid-template-columns: 1fr; }
+            .team-name { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <header class="progress-container">
+        <div class="gauge-wrapper">
+            <div class="page-title">
+                <span id="current-title">GATE OF ABYSS</span>
+                <span id="page-number">0 / 2</span>
+            </div>
+            <div class="gauge-bar">
+                <div id="gauge-fill" class="gauge-fill"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- [ 1. Title Page ] -->
+    <section id="page-1" class="page active">
+        <div class="gothic-card">
+            <p style="color: #666; font-size: 0.75rem; letter-spacing: 2px;">2026 KOREA ROBOCUP OPEN</p>
+            <h1 class="team-name">K.F.C.WAW</h1>
+            <p class="team-members">김주원 여호준 강성윤 황시윤</p>
+            <p style="margin-bottom: 15px; color: #555; font-size: 0.8rem;">마왕의 성에 도달했습니다. 첫 번째 시련이 기다립니다.</p>
+            <button class="btn" onclick="nextPage(2)">시련을 마주한다</button>
+        </div>
+    </section>
+
+    <!-- [ 2. Falling Game Page ] -->
+    <section id="page-2" class="page">
+        <div class="gothic-card" style="padding: 15px; max-width: 550px;">
+            <div id="game1-container" class="game-view">
+                <div id="game1-stat" style="position:absolute; top:10px; right:15px; color:var(--accent);">Fragments: 0 / 10</div>
+                <div id="player1"></div>
+                <div id="game1-overlay" class="game-overlay">
+                    <p style="color: white; margin-bottom: 15px; font-family: var(--font-gothic);">심연의 파편 10개를 모으십시오</p>
+                    <button class="btn" onclick="startGame1()">시작</button>
+                </div>
+            </div>
+            <p style="font-size: 0.7rem; color: #444;">[마우스 좌우 이동] 황금 파편을 수집하고 암석은 피하세요.</p>
+        </div>
+    </section>
+
+    <!-- [ 3. Stealth Game Page (Modified: Easy Mode) ] -->
+    <section id="page-3" class="page">
+        <div class="gothic-card" style="padding: 15px; max-width: 550px;">
+            <div id="game2-container" class="game-view" style="background: #050000;">
+                <div id="finish-line"></div>
+                <div id="demon-eye"></div>
+                <div id="stealth-player"></div>
+                <div id="game2-overlay" class="game-overlay">
+                    <p id="game2-msg" style="color: white; margin-bottom: 15px; font-family: var(--font-gothic);">눈이 붉어질 때 움직이지 마십시오</p>
+                    <button id="game2-action-btn" class="btn" onclick="startGame2()">시작</button>
+                </div>
+            </div>
+            <p style="font-size: 0.7rem; color: #444;">[마우스 클릭 유지] 전진하세요. 마왕이 쳐다볼 때 멈춰야 합니다.</p>
+        </div>
+    </section>
+
+    <!-- [ 4. Report Page ] -->
+    <section id="page-4" class="page">
+        <div class="gothic-card" style="max-width: 700px;">
+            <h2 style="font-family: var(--font-gothic); color: var(--primary); margin-bottom: 15px; font-size: 1.5rem;">CURSED RECORDS</h2>
+            <div class="report-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Ⅰ. 아쉬운 점</span>
+                    <p>성과가 기대에 미치지 못해 아쉬웠습니다.</p>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Ⅱ. 개선할 점</span>
+                    <p>프로그램 결함을 더욱 철저히 검토할 것.</p>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Ⅲ. 팀의 강점</span>
+                    <p>위기 상황에서도 팀원 모두 빠르게 회복했습니다.</p>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Ⅳ. 배운 점</span>
+                    <p>완벽한 노력에도 실수가 발생할 수 있음을 깨달음.</p>
+                </div>
+            </div>
+            <button class="btn" onclick="nextPage(5)">성문을 나선다</button>
+        </div>
+    </section>
+
+    <!-- [ 5. Ending Page ] -->
+    <section id="page-5" class="page">
+        <div class="ending-container" style="height: 100%; width: 100%; overflow: hidden;">
+            <div id="credits" class="credits-wrap">
+                <p style="font-size: 1.4rem; color: var(--primary); margin-bottom: 100px; font-style: italic;">"깔끔하게 마무리하고 다음을 기약하자"</p>
+                <p style="color: var(--secondary); font-family: var(--font-gothic); font-size: 0.8rem; letter-spacing: 3px;">ARCHITECTS OF KFC.WAW</p>
+                <h1 class="team-name" style="font-size: 3.5rem;">K.F.C.WAW</h1>
+                <div style="margin-top: 40px;">
+                    <p class="team-members" style="font-size: 1.8rem; display: block; margin: 10px;">김주원</p>
+                    <p class="team-members" style="font-size: 1.8rem; display: block; margin: 10px;">여호준</p>
+                    <p class="team-members" style="font-size: 1.8rem; display: block; margin: 10px;">강성윤</p>
+                    <p class="team-members" style="font-size: 1.8rem; display: block; margin: 10px;">황시윤</p>
+                </div>
+                <div style="height: 250px;"></div>
+            </div>
+        </div>
+        <button id="replay-btn" class="btn" style="position:fixed; bottom: 30px; display:none;" onclick="location.reload()">REPLAY</button>
+    </section>
+
+    <script>
+        // Background
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize);
+        resize();
+        class Particle {
+            constructor() { this.init(); }
+            init() { this.x = Math.random()*canvas.width; this.y = Math.random()*canvas.height; this.size = Math.random()*80+40; this.speedX = Math.random()*0.2-0.1; this.speedY = Math.random()*0.2-0.1; this.color = 'rgba(40, 0, 0, 0.1)'; }
+            update() { this.x += this.speedX; this.y += this.speedY; if(this.x<0 || this.x>canvas.width) this.speedX*=-1; if(this.y<0 || this.y>canvas.height) this.speedY*=-1; }
+            draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); }
+        }
+        for(let i=0; i<20; i++) particles.push(new Particle());
+        function animateBg() { ctx.clearRect(0,0,canvas.width,canvas.height); particles.forEach(p=>{p.update();p.draw();}); requestAnimationFrame(animateBg); }
+        animateBg();
+
+        // Game 1 Variables
+        const game1Container = document.getElementById('game1-container');
+        const player1 = document.getElementById('player1');
+        const game1Stat = document.getElementById('game1-stat');
+        const game1Overlay = document.getElementById('game1-overlay');
+        let g1Active = false, g1Score = 0, g1Items = [], g1PlayerX = 50, g1Loop;
+
+        // Game 2 Variables (Stealth - Easy Mode)
+        const game2Container = document.getElementById('game2-container');
+        const stealthPlayer = document.getElementById('stealth-player');
+        const demonEye = document.getElementById('demon-eye');
+        const game2Overlay = document.getElementById('game2-overlay');
+        const game2Msg = document.getElementById('game2-msg');
+        const game2ActionBtn = document.getElementById('game2-action-btn');
+        let g2Active = false, g2IsMoving = false, g2IsWatching = false, g2PlayerY = 290, g2Loop;
+
+        // Game 1 Controls
+        game1Container.addEventListener('mousemove', (e) => {
+            if(!g1Active) return;
+            const rect = game1Container.getBoundingClientRect();
+            g1PlayerX = ((e.clientX - rect.left) / rect.width) * 100;
+            player1.style.left = Math.max(5, Math.min(95, g1PlayerX)) + '%';
+        });
+
+        // Game 2 Controls
+        const startMoving = () => { if(g2Active) g2IsMoving = true; };
+        const stopMoving = () => { g2IsMoving = false; };
+        game2Container.addEventListener('mousedown', startMoving);
+        window.addEventListener('mouseup', stopMoving);
+        game2Container.addEventListener('touchstart', (e) => { e.preventDefault(); startMoving(); });
+        window.addEventListener('touchend', stopMoving);
+
+        // Game 1 Logic
+        function spawnG1Item() {
+            if(!g1Active) return;
+            const isObs = Math.random() > 0.7;
+            const item = document.createElement('div');
+            item.className = isObs ? 'obstacle' : 'item';
+            const x = Math.random()*90 + 5;
+            item.style.left = x + '%';
+            item.style.top = '-20px';
+            game1Container.appendChild(item);
+            g1Items.push({el: item, x: x, y: -20, speed: Math.random()*2+2, isObs: isObs});
+        }
+
+        function updateG1() {
+            if(!g1Active) return;
+            for(let i=g1Items.length-1; i>=0; i--) {
+                const item = g1Items[i];
+                item.y += item.speed;
+                item.el.style.top = item.y + 'px';
+                if(item.y > 280 && item.y < 305 && Math.abs(item.x - g1PlayerX) < 8) {
+                    if(item.isObs) { endG1(false); return; }
+                    else { g1Score++; game1Stat.innerText = `Fragments: ${g1Score} / 10`; item.el.remove(); g1Items.splice(i, 1); if(g1Score>=10) { endG1(true); return; } continue; }
+                }
+                if(item.y > 320) { item.el.remove(); g1Items.splice(i,1); }
+            }
+            if(Math.random() < 0.05) spawnG1Item();
+            g1Loop = requestAnimationFrame(updateG1);
+        }
+
+        function startGame1() {
+            g1Active = true; g1Score = 0; g1Items.forEach(i=>i.el.remove()); g1Items = [];
+            game1Overlay.style.display = 'none'; updateG1();
+        }
+
+        function endG1(success) {
+            g1Active = false; cancelAnimationFrame(g1Loop);
+            game1Overlay.style.display = 'flex';
+            if(success) {
+                game1Overlay.innerHTML = `<p style="color:var(--accent); margin-bottom:15px;">시련 통과</p>
+                    <div style="display:flex; gap:10px;"><button class="btn" onclick="nextPage(3)">다음 시련</button>
+                    <button class="btn" style="border-color:#555; color:#777" onclick="nextPage(4)">스킵</button></div>`;
+            } else {
+                game1Overlay.innerHTML = `<p style="color:var(--primary); margin-bottom:15px;">실패</p><button class="btn" onclick="location.reload()">다시 도전</button>`;
+            }
+        }
+
+        // Game 2 Logic (Easy Mode Adjustment)
+        function toggleEye() {
+            if(!g2Active) return;
+            g2IsWatching = !g2IsWatching;
+            if(g2IsWatching) {
+                demonEye.classList.add('watching');
+                // 마왕이 눈을 뜨고 있는 시간: 짧게 (0.7초 ~ 1.2초)
+                setTimeout(toggleEye, 700 + Math.random()*500);
+            } else {
+                demonEye.classList.remove('watching');
+                // 마왕이 눈을 감고 있는 시간: 길게 (2.0초 ~ 3.5초)
+                setTimeout(toggleEye, 2000 + Math.random()*1500);
+            }
+        }
+
+        function updateG2() {
+            if(!g2Active) return;
+            if(g2IsMoving) {
+                // 눈이 막 붉어졌을 때의 판정을 약간 너그럽게 하기 위해 watching 애니메이션 시작 후 약간의 유예를 둠
+                if(g2IsWatching) {
+                    endG2(false);
+                    return;
+                }
+                // 이동 속도 상향 (기존 1.5 -> 2.0)
+                g2PlayerY -= 2.0;
+                stealthPlayer.style.top = g2PlayerY + 'px';
+                if(g2PlayerY < 10) { endG2(true); return; }
+            }
+            g2Loop = requestAnimationFrame(updateG2);
+        }
+
+        function startGame2() {
+            g2Active = true; g2PlayerY = 290; g2IsMoving = false; g2IsWatching = false;
+            stealthPlayer.style.top = g2PlayerY + 'px';
+            game2Overlay.style.display = 'none';
+            // 시작 시 첫 감시는 조금 더 늦게 시작하도록 유도
+            setTimeout(toggleEye, 2000); 
+            updateG2();
+        }
+
+        function endG2(success) {
+            g2Active = false; cancelAnimationFrame(g2Loop);
+            game2Overlay.style.display = 'flex';
+            if(success) {
+                game2Overlay.innerHTML = `<p style="color:var(--accent); margin-bottom:15px;">통과: 마왕의 눈을 피했습니다</p>
+                    <button class="btn" onclick="nextPage(4)">기록 확인</button>`;
+            } else {
+                game2Overlay.innerHTML = `<p style="color:var(--primary); margin-bottom:15px;">들켰습니다!</p>
+                    <button class="btn" onclick="startGame2()">다시 도전</button>`;
+            }
+        }
+
+        // Page Navigation
+        let currP = 1;
+        function nextPage(n) {
+            document.getElementById(`page-${currP}`).style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById(`page-${currP}`).classList.remove('active');
+                currP = n;
+                let prog = (n-1)*25;
+                document.getElementById('gauge-fill').style.width = prog + '%';
+                document.getElementById('page-number').innerText = `${Math.min(n-1, 2)} / 2`;
+                const next = document.getElementById(`page-${n}`);
+                next.classList.add('active'); next.style.opacity = '1';
+                if(n===5) {
+                    document.getElementById('credits').classList.add('animate');
+                    setTimeout(()=>document.getElementById('replay-btn').style.display='block', 5000);
+                }
+            }, 600);
+        }
+    </script>
+</body>
+</html
