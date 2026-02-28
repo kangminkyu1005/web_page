@@ -1,1 +1,690 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K.F.C.F=ma | Co-space Rescue 2026</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+KR:wght@300;400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #ffffff;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            cursor: none; 
+        }
 
+        a, button, input, textarea {
+            cursor: none !important;
+        }
+
+        #arena-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -2;
+        }
+
+        .font-tech { font-family: 'Orbitron', sans-serif; }
+        .font-mono { font-family: 'Share Tech Mono', monospace; }
+
+        .status-bar {
+            position: fixed;
+            top: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(2px);
+            padding: 6px 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 30;
+            border-radius: 50px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-value {
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .audio-control {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(0,0,0,0.1);
+            font-size: 10px;
+            font-weight: bold;
+            color: #475569;
+            backdrop-filter: blur(5px);
+        }
+
+        .page-section {
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            opacity: 0;
+            transform: translateY(20px);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            visibility: hidden;
+            z-index: 10;
+        }
+        
+        .page-section.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+            visibility: visible;
+        }
+
+        .glass-card {
+            background: transparent; 
+            border: 1px solid rgba(0, 0, 0, 0.05); 
+            border-radius: 2rem;
+            padding: 3rem;
+            width: 90%;
+            max-width: 700px;
+        }
+
+        .hero-title {
+            background: linear-gradient(135deg, #0f172a 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
+
+        /* Security Overlay */
+        #security-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* AI Chat Bubble */
+        .ai-message {
+            background: rgba(240, 249, 255, 0.8);
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            color: #1e293b;
+            text-align: left;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border-left-color: #3b82f6;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen w-full relative">
+
+    <canvas id="arena-canvas"></canvas>
+
+    <button id="audio-toggle" class="audio-control font-tech hover:bg-white transition-all">
+        <span id="audio-icon">🔇</span>
+        <span id="audio-text">SOUND OFF</span>
+    </button>
+
+    <div class="status-bar font-mono">
+        <div class="status-item">
+            <span class="text-slate-400">POS:</span>
+            <span class="status-value" id="pos-display">X: 0 Y: 0</span>
+        </div>
+        <div class="status-item">
+            <span class="animate-pulse-soft text-sky-500 font-bold">● CONNECTION_ESTABLISHED</span>
+        </div>
+        <div class="status-item">
+            <span class="text-slate-400">AI_CORE:</span>
+            <span class="status-value text-emerald-600">ONLINE</span>
+        </div>
+        <div class="status-item hidden md:flex">
+            <span class="text-slate-400">SYSTEM:</span>
+            <span class="status-value">2026.v1-GEMINI</span>
+        </div>
+    </div>
+
+    <!-- Page Unlock Overlay -->
+    <div id="security-overlay">
+        <div class="glass-card text-center max-w-sm space-y-6">
+            <div class="font-tech text-sky-500 text-[10px] tracking-[0.3em] font-bold uppercase animate-pulse">Security Protocol</div>
+            <h2 class="text-xl font-bold text-slate-800">접근 승인 필요</h2>
+            <div class="space-y-4">
+                <input type="password" id="page-password" placeholder="PASSWORD REQUIRED" class="w-full bg-slate-100 border-none rounded-xl p-4 text-center font-mono text-lg tracking-widest focus:ring-2 focus:ring-sky-500 transition-all outline-none">
+                <button onclick="verifyAccess()" class="w-full py-4 bg-slate-900 text-white font-bold rounded-xl font-tech text-xs tracking-[0.2em] hover:bg-sky-600 transition-all shadow-xl">AUTHENTICATE</button>
+            </div>
+            <p class="text-[9px] text-slate-400 font-mono">ENCRYPTION LEVEL: ARBITRARY</p>
+        </div>
+    </div>
+
+    <canvas id="cursor-canvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
+
+    <header class="fixed top-0 left-0 w-full z-40 bg-white/10 backdrop-blur-sm border-b border-black/5">
+        <div class="h-1 w-full bg-slate-100/20">
+            <div id="progress-gauge" class="h-full bg-sky-400 transition-all duration-500" style="width: 33.33%;"></div>
+        </div>
+        <div class="container mx-auto px-6 py-2 flex justify-between items-center">
+            <div class="font-tech text-slate-700 text-[10px] tracking-[0.2em] font-bold uppercase">Arena Observer 2026</div>
+            <div id="progress-text" class="font-bold text-slate-400 text-[9px] uppercase tracking-widest">1. Main Interface</div>
+        </div>
+    </header>
+
+    <main class="relative w-full h-screen overflow-hidden">
+        <section id="page-1" class="page-section active">
+            <div class="glass-card text-center space-y-8">
+                <div class="inline-block px-3 py-1 rounded-full border border-sky-200/50 text-sky-600 text-[9px] font-bold font-tech tracking-[0.2em] bg-sky-50/10">
+                    IMPERIAL ORCHESTRAL SYSTEM
+                </div>
+                <h1 class="text-4xl md:text-5xl font-tech font-bold hero-title tracking-tighter">Co-space Rescue 2026</h1>
+                <div class="py-6 my-4 border-t border-b border-black/5 relative">
+                    <h3 class="text-[9px] text-slate-500 mb-3 font-bold font-tech tracking-[0.3em] uppercase">Team Identity</h3>
+                    <p class="text-5xl md:text-6xl font-tech text-slate-900 font-black tracking-widest mb-6">K.F.C.F=ma</p>
+                    <div class="flex justify-center gap-6 text-lg font-bold text-slate-800">
+                        <span>김규민</span> <span class="text-sky-400">/</span> <span>이원준</span> <span class="text-sky-400">/</span> <span>송민규</span>
+                    </div>
+                </div>
+                <button onclick="requestAccess(2)" class="group relative px-12 py-4 bg-slate-900 text-white font-bold rounded-xl transition-all hover:bg-sky-600 hover:scale-105 active:scale-95 shadow-lg">
+                    <span class="relative z-10 flex items-center gap-3 font-tech text-xs uppercase tracking-widest">
+                        Start Analysis
+                        <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    </span>
+                </button>
+            </div>
+        </section>
+
+        <section id="page-2" class="page-section">
+            <div class="w-full max-w-5xl px-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card !p-8 !max-w-none border-t-4 border-rose-500">
+                        <h3 class="text-rose-500 font-bold text-[10px] mb-3 font-tech tracking-[0.1em] uppercase">01. Regret</h3>
+                        <p class="text-slate-900 text-lg font-bold leading-tight">"팀원과의 소통 부족"</p>
+                        <p class="text-slate-600 text-xs mt-3 leading-relaxed font-medium">각자의 역할에 너무 몰입하여 전체적인 흐름을 놓쳤던 점이 아쉬움.</p>
+                    </div>
+                    <div class="glass-card !p-8 !max-w-none border-t-4 border-orange-500">
+                        <h3 class="text-orange-500 font-bold text-[10px] mb-3 font-tech tracking-[0.1em] uppercase">02. Improvement</h3>
+                        <p class="text-slate-900 text-lg font-bold leading-tight">"더 좋은 호흡의 커뮤니케이션"</p>
+                        <p class="text-slate-600 text-xs mt-3 leading-relaxed font-medium">실시간 전략 수정 시 서로의 의견을 더 적극적으로 수렴해야 함.</p>
+                    </div>
+                    <div class="glass-card !p-8 !max-w-none border-t-4 border-emerald-500 relative">
+                        <h3 class="text-emerald-500 font-bold text-[10px] mb-3 font-tech tracking-[0.1em] uppercase">03. AI Strategy ✨</h3>
+                        <div class="space-y-3">
+                            <textarea id="ai-strategy-input" placeholder="대회 전략이나 코드를 입력하면 AI가 분석합니다..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs outline-none focus:border-emerald-500 transition-all min-h-[80px]"></textarea>
+                            <button onclick="analyzeStrategy()" id="analyze-btn" class="w-full py-2 bg-emerald-500 text-white font-bold rounded-lg text-[10px] font-tech uppercase tracking-widest hover:bg-emerald-600 transition-all">✨ Analyze Strategy</button>
+                            <div id="ai-response-area" class="hidden">
+                                <div id="ai-loading" class="hidden text-center py-4">
+                                    <div class="spinner"></div>
+                                    <span class="text-[10px] font-mono text-slate-400">PROCESSING_LOGS...</span>
+                                </div>
+                                <div id="ai-content" class="ai-message font-mono text-[11px]"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card !p-8 !max-w-none border-t-4 border-sky-500">
+                        <h3 class="text-sky-500 font-bold text-[10px] mb-3 font-tech tracking-[0.1em] uppercase">04. Lesson</h3>
+                        <p class="text-slate-900 text-lg font-bold leading-tight">"세상은 넓고 고수는 많음"</p>
+                        <p class="text-slate-600 text-xs mt-3 leading-relaxed font-medium">다른 팀들의 알고리즘을 보며 시야를 넓힐 수 있었던 귀중한 경험이었음.</p>
+                    </div>
+                </div>
+                <div class="mt-10 flex justify-center gap-6">
+                    <button onclick="requestAccess(1)" class="px-8 py-3 bg-white/20 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold font-tech uppercase hover:bg-white/40 transition-colors">Prev</button>
+                    <button onclick="requestAccess(3)" class="px-10 py-3 bg-slate-900 text-white rounded-lg text-xs font-bold font-tech shadow-lg uppercase hover:bg-sky-600 transition-colors">Continue</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="page-3" class="page-section">
+            <div class="glass-card text-center !py-16">
+                <h2 class="text-4xl font-black text-slate-900 leading-tight mb-8">
+                    <span class="text-sky-400">"</span>더 보여줘야 했던 대회<span class="text-sky-400">"</span>
+                </h2>
+                <div class="bg-black/5 rounded-xl p-6 font-mono text-[10px] text-slate-500 mb-10 inline-block mx-auto text-left border border-black/5">
+                    <p class="text-sky-600 font-bold">> LOG_STATUS: ARCHIVED</p>
+                    <p>> VERSION_YEAR: 2026</p>
+                </div>
+                <div class="flex justify-center gap-4">
+                    <button onclick="requestAccess(1)" class="px-10 py-4 border border-slate-200 text-slate-500 rounded-xl text-xs font-tech hover:bg-black/5 uppercase tracking-widest transition-all">Reset</button>
+                    <button onclick="openGuestbook()" class="px-10 py-4 bg-sky-500 text-white font-bold rounded-xl text-xs font-tech hover:bg-sky-600 transition-all shadow-md uppercase tracking-widest">Connect</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="guestbook-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden bg-white/10 backdrop-blur-md">
+        <div class="glass-card !p-8 w-full max-w-sm relative !bg-white/80 !backdrop-blur-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-6 font-tech text-center tracking-widest uppercase">Communication</h3>
+            <div id="guestbook-form" class="space-y-3">
+                <input type="text" id="gb-name" placeholder="Identifier" class="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 text-sm outline-none focus:border-sky-500 transition-all">
+                <div class="relative">
+                    <textarea id="gb-message" placeholder="Input message..." rows="3" class="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 text-sm outline-none focus:border-sky-500 transition-all resize-none"></textarea>
+                    <button onclick="generateCheerMessage()" id="ai-cheer-btn" class="absolute bottom-2 right-2 p-1.5 bg-sky-100 text-sky-600 rounded-md hover:bg-sky-200 transition-all title='AI 응원 메시지 생성'">
+                        ✨
+                    </button>
+                </div>
+                <button onclick="submitGuestbook()" class="w-full py-4 bg-slate-900 text-white font-bold rounded-lg text-sm hover:bg-sky-600 transition-all">SEND SIGNAL</button>
+                <button onclick="closeGuestbook()" class="w-full py-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Gemini API Configuration ---
+        const apiKey = ""; // Runtime provides key
+        
+        async function callGemini(prompt, systemInstruction = "") {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text;
+                } catch (e) {
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            throw new Error("API Connection Failed");
+        }
+
+        // AI Strategy Analysis Feature
+        async function analyzeStrategy() {
+            const input = document.getElementById('ai-strategy-input').value;
+            if (!input.trim()) return;
+
+            const btn = document.getElementById('analyze-btn');
+            const area = document.getElementById('ai-response-area');
+            const loading = document.getElementById('ai-loading');
+            const content = document.getElementById('ai-content');
+
+            btn.disabled = true;
+            area.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            content.innerText = "";
+
+            try {
+                const systemPrompt = "당신은 Co-space Rescue 로봇 대회의 전문가 분석가입니다. 사용자가 제공하는 전략이나 코드에 대해 개선점, 예상되는 문제점, 그리고 성공을 위한 팁을 기술적으로 조언해주세요. 답변은 짧고 강렬한 엔지니어 스타일로 작성하세요.";
+                const response = await callGemini(input, systemPrompt);
+                content.innerText = response;
+            } catch (error) {
+                content.innerText = "Error: 시스템 응답 실패. 연결 상태를 확인하세요.";
+            } finally {
+                loading.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        // AI Cheer Message Generation
+        async function generateCheerMessage() {
+            const btn = document.getElementById('ai-cheer-btn');
+            const textarea = document.getElementById('gb-message');
+            const name = document.getElementById('gb-name').value || "방문자";
+            
+            btn.classList.add('animate-spin');
+            btn.disabled = true;
+
+            try {
+                const prompt = `${name}가 Co-space Rescue 팀 'K.F.C.F=ma'에게 보내는 창의적이고 테크니컬한 응원 메시지 한 문장을 생성해줘.`;
+                const response = await callGemini(prompt, "짧고 인상적인 응원 문구 전문가.");
+                textarea.value = response.replace(/"/g, '');
+            } catch (error) {
+                console.error(error);
+            } finally {
+                btn.classList.remove('animate-spin');
+                btn.disabled = false;
+            }
+        }
+
+        // --- Grand Orchestral Web Audio API ---
+        let audioCtx, masterGain, reverbNode, timerId;
+        let isAudioPlaying = false;
+
+        const FREQ = {
+            'G3': 196.00, 'A3': 220.00, 'Bb3': 233.08, 'B3': 246.94, 'C4': 261.63, 'Db4': 277.18, 'D4': 293.66, 'Eb4': 311.13, 'E4': 329.63, 'F4': 349.23, 'Gb4': 369.99, 'G4': 392.00,
+            'Ab4': 415.30, 'A4': 440.00, 'Bb4': 466.16, 'B4': 493.88, 'C5': 523.25, 'Db5': 554.37, 'D5': 587.33, 'Eb5': 622.25, 'E5': 659.25, 'F5': 698.46, 'Gb5': 739.99, 'G5': 783.99
+        };
+
+        const imperialMarchSheet = [
+            { t: 0, n: ['G3', 'G4'], d: 1.0 }, { t: 1, n: ['G3', 'G4'], d: 1.0 }, { t: 2, n: ['G3', 'G4'], d: 1.0 },
+            { t: 3, n: ['Eb3', 'Eb4'], d: 0.75 }, { t: 3.75, n: ['Bb3', 'Bb4'], d: 0.25 },
+            { t: 4, n: ['G3', 'G4'], d: 1.0 }, { t: 5, n: ['Eb3', 'Eb4'], d: 0.75 }, { t: 5.75, n: ['Bb3', 'Bb4'], d: 0.25 },
+            { t: 6, n: ['G3', 'G4'], d: 2.0 },
+            { t: 8, n: ['D4', 'D5'], d: 1.0 }, { t: 9, n: ['D4', 'D5'], d: 1.0 }, { t: 10, n: ['D4', 'D5'], d: 1.0 },
+            { t: 11, n: ['Eb4', 'Eb5'], d: 0.75 }, { t: 11.75, n: ['Bb3', 'Bb4'], d: 0.25 },
+            { t: 12, n: ['Gb3', 'Gb4'], d: 1.0 }, { t: 13, n: ['Eb3', 'Eb4'], d: 0.75 }, { t: 13.75, n: ['Bb3', 'Bb4'], d: 0.25 },
+            { t: 14, n: ['G3', 'G4'], d: 2.0 }
+        ];
+
+        function createReverb() {
+            const length = (new (window.AudioContext || window.webkitAudioContext)()).sampleRate * 2.5;
+            const impulse = (new (window.AudioContext || window.webkitAudioContext)()).createBuffer(2, length, (new (window.AudioContext || window.webkitAudioContext)()).sampleRate);
+            for (let i = 0; i < 2; i++) {
+                const channel = impulse.getChannelData(i);
+                for (let j = 0; j < length; j++) {
+                    channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / length, 2.0);
+                }
+            }
+            const node = (new (window.AudioContext || window.webkitAudioContext)()).createConvolver();
+            node.buffer = impulse;
+            return node;
+        }
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            reverbNode = createReverb();
+            masterGain.connect(reverbNode);
+            reverbNode.connect(audioCtx.destination);
+            masterGain.connect(audioCtx.destination);
+            masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        }
+
+        function playOrchestralTone(freqName, startTime, duration) {
+            const freq = FREQ[freqName];
+            if (!freq) return;
+            const brass = audioCtx.createOscillator();
+            const brassGain = audioCtx.createGain();
+            brass.type = 'sawtooth';
+            brass.frequency.setValueAtTime(freq, startTime);
+            const strings = audioCtx.createOscillator();
+            const stringsGain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            strings.type = 'square';
+            strings.frequency.setValueAtTime(freq / 2, startTime);
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1000, startTime);
+            brassGain.gain.setValueAtTime(0, startTime);
+            brassGain.gain.linearRampToValueAtTime(0.18, startTime + 0.01);
+            brassGain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+            stringsGain.gain.setValueAtTime(0, startTime);
+            stringsGain.gain.linearRampToValueAtTime(0.12, startTime + 0.03);
+            stringsGain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+            brass.connect(brassGain);
+            brassGain.connect(masterGain);
+            strings.connect(filter);
+            filter.connect(stringsGain);
+            stringsGain.connect(masterGain);
+            brass.start(startTime);
+            brass.stop(startTime + duration + 0.4);
+            strings.start(startTime);
+            strings.stop(startTime + duration + 0.4);
+        }
+
+        function startImperialMarch() {
+            const bpm = 106.5; 
+            const beatDur = 60 / bpm;
+            const loopDur = 16 * beatDur;
+            function scheduleLoop(offset) {
+                if(!isAudioPlaying) return;
+                imperialMarchSheet.forEach(s => {
+                    const start = offset + s.t * beatDur;
+                    s.n.forEach(note => playOrchestralTone(note, start, s.d * beatDur));
+                });
+                timerId = setTimeout(() => scheduleLoop(offset + loopDur), loopDur * 1000);
+            }
+            scheduleLoop(audioCtx.currentTime + 0.1);
+        }
+
+        document.getElementById('audio-toggle').addEventListener('click', function() {
+            initAudio();
+            if (!isAudioPlaying) {
+                audioCtx.resume();
+                isAudioPlaying = true;
+                masterGain.gain.linearRampToValueAtTime(0.7, audioCtx.currentTime + 0.5);
+                this.innerHTML = `<span>🎻</span><span>STately MARCH</span>`;
+                startImperialMarch();
+            } else {
+                isAudioPlaying = false;
+                masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                this.innerHTML = `<span>🔇</span><span>SOUND OFF</span>`;
+                clearTimeout(timerId);
+            }
+        });
+
+        // --- UI Logic & Navigation ---
+        let currP = 1;
+        let pendingP = 1;
+
+        function requestAccess(p) {
+            pendingP = p;
+            const overlay = document.getElementById('security-overlay');
+            const passInput = document.getElementById('page-password');
+            passInput.value = '';
+            overlay.style.display = 'flex';
+            passInput.focus();
+        }
+
+        function verifyAccess() {
+            const overlay = document.getElementById('security-overlay');
+            overlay.style.display = 'none';
+            goToPage(pendingP);
+        }
+
+        document.getElementById('page-password').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') verifyAccess();
+        });
+
+        function goToPage(p) {
+            document.getElementById(`page-${currP}`).classList.remove('active');
+            setTimeout(() => document.getElementById(`page-${p}`).classList.add('active'), 300);
+            currP = p;
+            document.getElementById('progress-gauge').style.width = `${(p/3)*100}%`;
+            document.getElementById('progress-text').innerText = `${p}. ${["","Main Interface","Data Analysis","Conclusion"][p]}`;
+        }
+
+        function openGuestbook() { document.getElementById('guestbook-modal').classList.remove('hidden'); }
+        function closeGuestbook() { document.getElementById('guestbook-modal').classList.add('hidden'); }
+        function submitGuestbook() {
+            closeGuestbook();
+        }
+
+        // --- CsBot Precise Cursor System ---
+        const cursorCanvas = document.getElementById('cursor-canvas');
+        const cctx = cursorCanvas.getContext('2d');
+        const m = { x: window.innerWidth/2, y: window.innerHeight/2 };
+        const botPos = { x: window.innerWidth/2, y: window.innerHeight/2, rot: 0 };
+        let wheelRotation = 0;
+
+        function resizeC() { 
+            cursorCanvas.width = window.innerWidth; 
+            cursorCanvas.height = window.innerHeight; 
+        }
+        window.addEventListener('resize', resizeC); resizeC();
+        
+        window.addEventListener('mousemove', (e) => { 
+            m.x = e.clientX; 
+            m.y = e.clientY; 
+            document.getElementById('pos-display').innerText = `X: ${Math.round(m.x)} Y: ${Math.round(m.y)}`; 
+        });
+
+        function drawCsBot(x, y, angle) {
+            cctx.save();
+            cctx.translate(x, y);
+            cctx.rotate(angle + Math.PI/2); // 기본 방향 보정
+
+            // 바퀴 (Wheels) - 움직임에 따라 회전 표현
+            cctx.fillStyle = '#334155';
+            wheelRotation += 0.2;
+            const wOff = Math.sin(wheelRotation) * 2;
+            cctx.fillRect(-28, -10 + wOff, 8, 20); // Left Wheel
+            cctx.fillRect(20, -10 - wOff, 8, 20);  // Right Wheel
+
+            // 하단 프레임 (Main Chassis) - 이미지의 빨간색 프레임
+            cctx.fillStyle = '#ef4444'; // Red frame
+            cctx.beginPath();
+            cctx.roundRect(-22, -15, 44, 35, 4);
+            cctx.fill();
+
+            // 상단 전자 회로판 (Top PCB)
+            cctx.fillStyle = '#34d399'; // Green PCB
+            cctx.fillRect(-18, -10, 36, 25);
+            cctx.strokeStyle = '#065f46';
+            cctx.lineWidth = 0.5;
+            cctx.strokeRect(-18, -10, 36, 25);
+
+            // 초음파 센서 3개 (Front, Left, Right)
+            cctx.fillStyle = '#94a3b8';
+            const sensorWidth = 10;
+            const sensorHeight = 6;
+            
+            // Front Ultrasonic
+            cctx.fillRect(-sensorWidth/2, -21, sensorWidth, sensorHeight);
+            cctx.fillStyle = '#1e293b';
+            cctx.beginPath(); cctx.arc(-3, -18, 2, 0, Math.PI*2); cctx.fill();
+            cctx.beginPath(); cctx.arc(3, -18, 2, 0, Math.PI*2); cctx.fill();
+
+            // Left Ultrasonic (Angled)
+            cctx.save();
+            cctx.translate(-15, -18);
+            cctx.rotate(-Math.PI/4);
+            cctx.fillStyle = '#94a3b8';
+            cctx.fillRect(-sensorWidth/2, -sensorHeight/2, sensorWidth, sensorHeight);
+            cctx.restore();
+
+            // Right Ultrasonic (Angled)
+            cctx.save();
+            cctx.translate(15, -18);
+            cctx.rotate(Math.PI/4);
+            cctx.fillStyle = '#94a3b8';
+            cctx.fillRect(-sensorWidth/2, -sensorHeight/2, sensorWidth, sensorHeight);
+            cctx.restore();
+
+            // LED (Rear Red Ball)
+            const ledPulse = Math.sin(Date.now() / 200) * 5 + 10;
+            cctx.shadowBlur = ledPulse;
+            cctx.shadowColor = '#ff0000';
+            cctx.fillStyle = '#b91c1c';
+            cctx.beginPath();
+            cctx.arc(0, 20, 5, 0, Math.PI*2);
+            cctx.fill();
+            cctx.shadowBlur = 0;
+
+            // Compass Sensor (Antenna)
+            cctx.strokeStyle = '#fbbf24';
+            cctx.lineWidth = 1.5;
+            cctx.beginPath();
+            cctx.moveTo(10, -10);
+            cctx.lineTo(15, -25);
+            cctx.stroke();
+            cctx.fillStyle = '#fbbf24';
+            cctx.fillRect(13, -28, 4, 3);
+            
+            cctx.restore();
+        }
+
+        function drawC() {
+            cctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+            
+            // 로봇이 마우스를 부드럽게 따라오게 함
+            const dx = m.x - botPos.x;
+            const dy = (m.y - 40) - botPos.y; // 약간 위쪽에 위치
+            
+            botPos.x += dx * 0.12;
+            botPos.y += dy * 0.12;
+            
+            // 이동 방향에 따른 회전 각도 계산
+            if (Math.abs(dx) + Math.abs(dy) > 1) {
+                const targetRot = Math.atan2(dy, dx);
+                // 회전 보간
+                let diff = targetRot - botPos.rot;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                botPos.rot += diff * 0.1;
+            }
+
+            drawCsBot(botPos.x, botPos.y, botPos.rot);
+            
+            // 마우스 실제 위치의 타겟팅 포인트
+            cctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+            cctx.lineWidth = 1;
+            cctx.setLineDash([2, 2]);
+            cctx.beginPath();
+            cctx.arc(m.x, m.y, 10, 0, Math.PI*2);
+            cctx.stroke();
+            cctx.setLineDash([]);
+            
+            requestAnimationFrame(drawC);
+        }
+        drawC();
+
+        // --- Arena Grid ---
+        const arenaCanvas = document.getElementById('arena-canvas');
+        const actx = arenaCanvas.getContext('2d');
+        function drawArena() {
+            const w = arenaCanvas.width = window.innerWidth;
+            const h = arenaCanvas.height = window.innerHeight;
+            actx.fillStyle = '#ffffff'; actx.fillRect(0, 0, w, h);
+            actx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+            for(let x=0; x<w; x+=100) { actx.beginPath(); actx.moveTo(x, 0); actx.lineTo(x, h); actx.stroke(); }
+            for(let y=0; y<h; y+=100) { actx.beginPath(); actx.moveTo(0, y); actx.lineTo(w, y); actx.stroke(); }
+        }
+        window.addEventListener('resize', drawArena); drawArena();
+    </script>
+</body>
+</html>
