@@ -1,1 +1,595 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 한국 로보컵 코리아 오픈 - K.F.C.Sirius</title>
+    <!-- Google Fonts for Harry Potter-like feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Noto+Serif+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --hp-gold: #ffc500;
+            --hp-dark-blue: #020617;
+            --hp-magic-blue: #00d4ff;
+            --hp-patronus: #00f2ff;
+            --hp-fiendfyre: #ff4d00;
+            --hp-patronus-glow: rgba(0, 242, 255, 0.5);
+            --snitch-metal: linear-gradient(145deg, #fff7ad, #ffc500, #b8860b);
+        }
 
+        html, body, * { cursor: auto; }
+        a, button, .magic-btn, #snitch { cursor: pointer; }
+
+        body {
+            background-color: var(--hp-dark-blue);
+            background-image: 
+                radial-gradient(circle at 50% 110%, #1a0500 0%, #020617 70%, #000 100%);
+            color: white;
+            font-family: 'Noto Serif KR', serif;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        h1, h2, .font-magic { font-family: 'Cinzel Decorative', cursive; }
+
+        /* Hogwarts Silhouette in Background */
+        .hogwarts-bg {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        .castle-silhouette {
+            position: absolute;
+            bottom: -10px;
+            width: 100%;
+            height: 70vh;
+            background-repeat: repeat-x;
+            background-position: bottom;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 400' preserveAspectRatio='none'%3E%3Cpath d='M0,400 L0,320 L20,300 L35,320 L50,220 L65,300 L90,280 L110,350 L140,240 L170,100 L200,240 L240,200 L270,30 L310,210 L350,230 L390,120 L440,240 L490,180 L540,0 L590,180 L640,240 L690,110 L740,240 L780,180 L820,50 L860,190 L900,260 L930,150 L960,300 L1000,280 L1000,400 Z' fill='%2301040a'/%3E%3C/svg%3E");
+            background-size: 2200px 100%;
+            filter: drop-shadow(0 -2px 15px var(--hp-patronus-glow));
+            opacity: 0.8;
+        }
+
+        .castle-mist {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 35vh;
+            background: linear-gradient(to top, rgba(20, 5, 0, 0.9) 10%, rgba(0, 10, 20, 0.4) 50%, transparent 100%);
+            z-index: -1;
+            mix-blend-mode: screen;
+        }
+
+        /* Gauge Progress Bar */
+        #progress-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            z-index: 100;
+            text-align: center;
+        }
+
+        #progress-gauge {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        #progress-fill {
+            width: 25%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--hp-fiendfyre), var(--hp-patronus));
+            box-shadow: 0 0 10px var(--hp-patronus);
+            transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #page-title {
+            font-size: 0.8rem;
+            color: var(--hp-patronus);
+            text-shadow: 0 0 10px rgba(0,0,0,1);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        /* Scene Transitions */
+        .scene {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100vh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 1s ease, visibility 1s;
+            padding: 20px; box-sizing: border-box;
+            text-align: center;
+            z-index: 1;
+        }
+
+        .scene.active { opacity: 1; visibility: visible; }
+
+        #magic-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+
+        .magic-btn {
+            background: rgba(0, 10, 20, 0.8);
+            backdrop-filter: blur(8px);
+            border: 2px solid var(--hp-patronus);
+            color: white;
+            padding: 14px 40px;
+            font-size: 1.1rem;
+            transition: all 0.4s;
+            margin-top: 30px;
+            border-radius: 2px;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+            z-index: 10;
+            letter-spacing: 2px;
+        }
+
+        .magic-btn:hover { 
+            background: var(--hp-patronus); 
+            color: #000; 
+            box-shadow: 0 0 40px var(--hp-patronus); 
+            transform: translateY(-2px);
+            font-weight: bold;
+        }
+
+        .skip-btn {
+            background: transparent;
+            border: 1px solid rgba(0, 242, 255, 0.4);
+            color: rgba(255, 255, 255, 0.6);
+            padding: 8px 20px;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        .skip-btn:hover { border-color: var(--hp-patronus); color: white; background: rgba(0, 242, 255, 0.1); }
+
+        /* Game Elements */
+        #game-area {
+            position: relative;
+            width: 100%; max-width: 800px; height: 400px;
+            background: radial-gradient(circle, rgba(20, 5, 0, 0.6) 0%, rgba(0,0,0,0.9) 100%);
+            border: 2px solid rgba(0, 242, 255, 0.3);
+            border-radius: 4px;
+            overflow: hidden; margin: 20px 0;
+            box-shadow: inset 0 0 50px rgba(0,0,0,1);
+        }
+
+        #snitch {
+            position: absolute;
+            width: 30px; height: 30px;
+            background: var(--snitch-metal);
+            border-radius: 50%;
+            box-shadow: 0 0 20px #ffc500;
+            display: none; z-index: 50;
+            transition: left 0.5s ease-out, top 0.5s ease-out;
+        }
+
+        .wing {
+            position: absolute; top: 5px; width: 50px; height: 15px;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1));
+            border-radius: 50% 100% 10% 100%; transform-origin: left center;
+            opacity: 0.8;
+        }
+        .wing-left { left: -45px; transform: scaleX(-1) rotate(-20deg); animation: flap-left 0.08s infinite alternate ease-in-out; }
+        .wing-right { right: -45px; transform: rotate(-20deg); animation: flap-right 0.08s infinite alternate ease-in-out; }
+
+        @keyframes flap-right { from { transform: rotate(-40deg); } to { transform: rotate(40deg); } }
+        @keyframes flap-left { from { transform: scaleX(-1) rotate(-40deg); } to { transform: scaleX(-1) rotate(40deg); } }
+
+        .magic-sparkle {
+            position: fixed; width: 4px; height: 4px;
+            background: #00f2ff; border-radius: 50%;
+            pointer-events: none; z-index: 9999;
+            box-shadow: 0 0 10px #00d4ff, 0 0 20px #ffffff;
+            animation: sparkle-move 0.8s ease-out forwards;
+        }
+
+        @keyframes sparkle-move {
+            0% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); opacity: 0; }
+        }
+
+        /* Ending Animation */
+        @keyframes scroll {
+            from { transform: translateY(100%); }
+            to { transform: translateY(-120%); }
+        }
+        .animate-scroll {
+            animation: scroll 20s linear infinite;
+        }
+
+        #sound-toggle {
+            position: fixed; bottom: 20px; right: 20px; z-index: 100;
+            background: rgba(0,0,0,0.7); border: 1px solid var(--hp-patronus);
+            border-radius: 50%; width: 45px; height: 45px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--hp-patronus); font-size: 1.1rem; transition: transform 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="sound-toggle" onclick="toggleAudio()">🔊</button>
+
+    <div id="progress-container">
+        <div id="page-title">Loading...</div>
+        <div id="progress-gauge">
+            <div id="progress-fill"></div>
+        </div>
+    </div>
+
+    <!-- Hogwarts Background Elements -->
+    <div class="hogwarts-bg">
+        <div class="castle-silhouette"></div>
+        <div class="castle-mist"></div>
+    </div>
+
+    <canvas id="magic-canvas"></canvas>
+
+    <!-- Page 1: Main Page -->
+    <div id="scene-1" class="scene active">
+        <h2 class="text-xl text-cyan-400 mb-2 font-magic tracking-[0.3em] drop-shadow-lg">2026 KOREA ROBOCUP OPEN</h2>
+        <h1 class="text-6xl md:text-8xl mb-8 font-magic tracking-widest text-white drop-shadow-[0_0_30px_rgba(0,242,255,0.5)]">K.F.C.Sirius</h1>
+        <div class="text-lg md:text-xl space-x-10 flex items-center bg-black bg-opacity-60 px-10 py-5 rounded-sm border border-cyan-900 border-opacity-40 backdrop-blur-md">
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] text-cyan-400 font-magic mb-1 opacity-70">TEAM LEADER</span>
+                <span class="font-bold tracking-widest">최윤우</span>
+            </div>
+            <span class="w-[1px] h-8 bg-cyan-700 bg-opacity-40"></span>
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] text-cyan-400 font-magic mb-1 opacity-70">W1</span>
+                <span>이지호</span>
+            </div>
+            <span class="w-[1px] h-8 bg-cyan-700 bg-opacity-40"></span>
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] text-cyan-400 font-magic mb-1 opacity-70">W2</span>
+                <span>박도현</span>
+            </div>
+        </div>
+        <p class="mt-14 italic text-cyan-100 animate-pulse text-2xl font-serif drop-shadow-[0_0_15px_rgba(0,242,255,0.8)]">"Expecto Patronum!"</p>
+        <button class="magic-btn font-magic" onclick="initAndStart()">Begin the Journey</button>
+    </div>
+
+    <!-- Page 2: Detail Page -->
+    <div id="scene-2" class="scene">
+        <div class="bg-black bg-opacity-80 backdrop-blur-xl p-12 rounded-sm border border-cyan-900 border-opacity-40 text-left max-w-2xl shadow-[0_0_100px_rgba(0,20,40,0.8)]">
+            <h3 class="font-magic text-cyan-400 text-center mb-10 text-2xl tracking-widest border-b border-cyan-900 pb-4">Tournament Archives</h3>
+            <div class="space-y-8">
+                <div>
+                    <div class="text-cyan-600 font-magic text-[10px] uppercase tracking-[0.2em] mb-2 flex items-center">
+                        <span class="mr-2">🪄</span> 01. The Regret
+                    </div>
+                    <div class="text-2xl pl-6 text-white border-l-2 border-cyan-800">Telpot 가 변수 초기화 안 함</div>
+                </div>
+                <div>
+                    <div class="text-cyan-600 font-magic text-[10px] uppercase tracking-[0.2em] mb-2 flex items-center">
+                        <span class="mr-2">🪄</span> 02. Improvement
+                    </div>
+                    <div class="text-2xl pl-6 text-white border-l-2 border-cyan-800">프로그램을 확인 해야겠다.</div>
+                </div>
+                <div>
+                    <div class="text-cyan-600 font-magic text-[10px] uppercase tracking-[0.2em] mb-2 flex items-center">
+                        <span class="mr-2">🪄</span> 03. Team Strength
+                    </div>
+                    <div class="text-2xl pl-6 text-white border-l-2 border-cyan-800">끝까지 포기하지 않음</div>
+                </div>
+                <div>
+                    <div class="text-cyan-600 font-magic text-[10px] uppercase tracking-[0.2em] mb-2 flex items-center">
+                        <span class="mr-2">🪄</span> 04. Lesson Learned
+                    </div>
+                    <div class="text-2xl pl-6 text-white border-l-2 border-cyan-800">프로그램 확인은 생명이다.</div>
+                </div>
+            </div>
+        </div>
+        <button class="magic-btn font-magic" onclick="nextPage(3)">Enter the Stadium</button>
+    </div>
+
+    <!-- Page 3: Mini Game -->
+    <div id="scene-3" class="scene">
+        <h2 class="text-3xl font-magic text-cyan-400 mb-4 tracking-widest drop-shadow-lg">Snitch Pursuit</h2>
+        <div class="mb-4 text-sm tracking-[0.3em] font-magic">CAPTURED: <span id="score" class="text-cyan-300 text-xl">0</span> / 5</div>
+        <div id="game-area">
+            <div id="snitch">
+                <div class="wing wing-left"></div>
+                <div class="wing wing-right"></div>
+            </div>
+            <div id="game-start-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-80 backdrop-blur-md z-20">
+                <p class="mb-8 text-white text-lg tracking-widest italic font-serif">"Catch the snitch amidst the storm."</p>
+                <button class="magic-btn" onclick="startGame()">Commence</button>
+                <button class="skip-btn font-magic" onclick="skipGame()">Bypass Challenge</button>
+            </div>
+        </div>
+        <button id="game-next-btn" class="magic-btn font-magic hidden" onclick="nextPage(4)">Final Record</button>
+        <button id="active-skip-btn" class="skip-btn font-magic hidden" onclick="skipGame()">Escape the Storm</button>
+    </div>
+
+    <!-- Page 4: Ending Page -->
+    <div id="scene-4" class="scene">
+        <div class="overflow-hidden h-96 relative w-full max-w-xl mb-12 bg-black bg-opacity-60 rounded-sm border border-cyan-900 border-opacity-30 backdrop-blur-md">
+            <div id="credits-roll-el" class="animate-scroll text-center py-16">
+                <p class="text-[10px] text-cyan-400 font-magic tracking-[0.5em] mb-2">PRESENTED BY</p>
+                <h1 class="text-6xl font-magic mb-20 text-white drop-shadow-[0_0_20px_rgba(0,242,255,0.5)]">K.F.C.Sirius</h1>
+                
+                <p class="text-[10px] text-cyan-400 font-magic tracking-[0.5em] mb-6">THE WIZARDS</p>
+                <div class="mb-14">
+                    <p class="text-xs opacity-50 mb-1">CAPTAIN</p>
+                    <p class="text-4xl text-white">최윤우</p>
+                </div>
+                <div class="mb-14">
+                    <p class="text-xs opacity-50 mb-1">W1</p>
+                    <p class="text-3xl text-white">이지호</p>
+                </div>
+                <div class="mb-20">
+                    <p class="text-xs opacity-50 mb-1">W2</p>
+                    <p class="text-3xl text-white">박도현</p>
+                </div>
+
+                <p class="text-[10px] text-cyan-400 font-magic tracking-[0.5em] mb-10">ACKNOWLEDGEMENTS</p>
+                <p class="text-2xl mb-6">RoboCup Korea Open</p>
+                <p class="text-2xl mb-24">The Order of Phoenix</p>
+                
+                <p class="text-sm opacity-40 italic font-magic tracking-widest">"All was well."</p>
+            </div>
+        </div>
+        <div id="final-msg" class="opacity-0 transition-opacity duration-1000">
+            <p class="text-3xl italic font-serif text-cyan-50 mb-8 drop-shadow-xl">"A truly legendary performance."</p>
+            <button class="magic-btn font-magic" onclick="resetApp()">Return to Sanctum</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('magic-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        
+        function resizeCanvas() { 
+            canvas.width = window.innerWidth; 
+            canvas.height = window.innerHeight; 
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height + Math.random() * 200;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedY = -(Math.random() * 2.5 + 0.5);
+                this.speedX = Math.random() * 1.5 - 0.75;
+                this.angle = Math.random() * Math.PI * 2;
+                this.angleVel = Math.random() * 0.04 - 0.02;
+                this.life = Math.random() * 250 + 150;
+                this.maxLife = this.life;
+                
+                // Mix of Patronus (Blues) and Fiendfyre (Oranges)
+                const isFire = Math.random() > 0.6;
+                if (isFire) {
+                    const fireColors = ['#ff4d00', '#ff8c00', '#ffc400', '#ff0000'];
+                    this.color = fireColors[Math.floor(Math.random() * fireColors.length)];
+                    this.type = 'fire';
+                } else {
+                    const iceColors = ['#00f2ff', '#00d4ff', '#ffffff', '#e0faff'];
+                    this.color = iceColors[Math.floor(Math.random() * iceColors.length)];
+                    this.type = 'patronus';
+                }
+            }
+            update() {
+                this.y += this.speedY;
+                // Fire rises more chaotic, Patronus follows a gentle wave
+                if (this.type === 'fire') {
+                    this.x += this.speedX + Math.sin(this.angle) * 2;
+                    this.speedY -= 0.01; // Accelerate up
+                } else {
+                    this.x += this.speedX + Math.sin(this.angle) * 1.2;
+                }
+                
+                this.angle += this.angleVel;
+                this.life--;
+                if (this.life <= 0 || this.y < -20) this.reset();
+            }
+            draw() {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                const opacity = this.life / this.maxLife;
+                ctx.globalAlpha = opacity * 0.7;
+                ctx.fillStyle = this.color;
+                
+                // Bloom effect
+                ctx.shadowBlur = this.type === 'fire' ? 12 * opacity : 18 * opacity;
+                ctx.shadowColor = this.color;
+                
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 200; i++) particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Subtle atmosphere gradient
+            const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+            gradient.addColorStop(0, 'rgba(30, 10, 0, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 10, 20, 0.2)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        initParticles();
+        animate();
+
+        let audioCtx;
+        let isMuted = false;
+        let themePlaying = false;
+
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+
+        function playSound(type) {
+            if (!audioCtx || isMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now);
+                gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'transition') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.8);
+                gain.gain.setValueAtTime(0.08, now); gain.gain.linearRampToValueAtTime(0, now + 0.8);
+                osc.start(now); osc.stop(now + 0.8);
+            }
+        }
+
+        function playThemeBGM() {
+            if (!audioCtx || themePlaying || isMuted) return;
+            themePlaying = true;
+            const melody = [
+                { f: 523.25, d: 0.6 }, { f: 659.25, d: 0.6 }, { f: 783.99, d: 0.8 }, { f: 987.77, d: 1.0 },
+                { f: 880.00, d: 0.6 }, { f: 698.46, d: 0.6 }, { f: 523.25, d: 1.2 }
+            ];
+            let time = audioCtx.currentTime;
+            melody.forEach(n => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(n.f, time);
+                gain.gain.setValueAtTime(0, time);
+                gain.gain.linearRampToValueAtTime(0.05, time + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + n.d * 0.9);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(time); osc.stop(time + n.d);
+                time += n.d;
+            });
+            setTimeout(() => { themePlaying = false; if(!isMuted) playThemeBGM(); }, 8000);
+        }
+
+        function toggleAudio() {
+            isMuted = !isMuted;
+            document.getElementById('sound-toggle').innerText = isMuted ? '🔇' : '🔊';
+            if (!isMuted) { initAudio(); playThemeBGM(); }
+        }
+
+        function initAndStart() { initAudio(); playThemeBGM(); nextPage(2); }
+
+        window.addEventListener('mousedown', (e) => {
+            playSound('click');
+            for (let i = 0; i < 15; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'magic-sparkle';
+                sparkle.style.left = e.clientX + 'px'; 
+                sparkle.style.top = e.clientY + 'px';
+                const tx = (Math.random() - 0.5) * 200 + 'px';
+                const ty = (Math.random() - 0.5) * 200 + 'px';
+                sparkle.style.setProperty('--tx', tx);
+                sparkle.style.setProperty('--ty', ty);
+                document.body.appendChild(sparkle);
+                setTimeout(() => sparkle.remove(), 800);
+            }
+        });
+
+        let currentScene = 1;
+        const totalScenes = 4;
+        const pageTitles = ["Intro", "Archives", "The Stadium", "Final Credits"];
+
+        function updateProgress() {
+            document.getElementById('progress-fill').style.width = (currentScene / totalScenes) * 100 + '%';
+            document.getElementById('page-title').innerText = pageTitles[currentScene - 1];
+        }
+
+        function nextPage(num) {
+            playSound('transition');
+            document.getElementById(`scene-${currentScene}`).classList.remove('active');
+            setTimeout(() => {
+                currentScene = num;
+                document.getElementById(`scene-${num}`).classList.add('active');
+                updateProgress();
+                if (num === 4) {
+                    setTimeout(() => document.getElementById('final-msg').classList.add('opacity-100'), 6000);
+                }
+            }, 500);
+        }
+
+        let score = 0;
+        let gameActive = false;
+        const snitch = document.getElementById('snitch');
+        const scoreDisplay = document.getElementById('score');
+
+        function moveSnitch() {
+            if (!gameActive) return;
+            const area = document.getElementById('game-area');
+            snitch.style.left = Math.random() * (area.clientWidth - 40) + 'px';
+            snitch.style.top = Math.random() * (area.clientHeight - 40) + 'px';
+            setTimeout(moveSnitch, 600);
+        }
+
+        function startGame() {
+            score = 0; gameActive = true; 
+            document.getElementById('game-start-overlay').style.display = 'none';
+            snitch.style.display = 'block';
+            document.getElementById('active-skip-btn').classList.remove('hidden');
+            moveSnitch();
+        }
+
+        snitch.addEventListener('mousedown', () => {
+            if (!gameActive) return;
+            score++; scoreDisplay.innerText = score;
+            if (score >= 5) {
+                gameActive = false; snitch.style.display = 'none';
+                document.getElementById('game-next-btn').classList.remove('hidden');
+                document.getElementById('active-skip-btn').classList.add('hidden');
+                scoreDisplay.innerText = "TRIUMPH";
+            }
+        });
+
+        function skipGame() {
+            gameActive = false; snitch.style.display = 'none';
+            document.getElementById('game-start-overlay').style.display = 'none';
+            document.getElementById('game-next-btn').classList.remove('hidden');
+            document.getElementById('active-skip-btn').classList.add('hidden');
+            scoreDisplay.innerText = "SKIPPED";
+        }
+
+        function resetApp() {
+            document.getElementById('scene-4').classList.remove('active');
+            document.getElementById('final-msg').classList.remove('opacity-100');
+            setTimeout(() => {
+                currentScene = 1; document.getElementById('scene-1').classList.add('active');
+                document.getElementById('game-start-overlay').style.display = 'flex';
+                document.getElementById('game-next-btn').classList.add('hidden');
+                updateProgress();
+            }, 500);
+        }
+
+        updateProgress();
+    </script>
+</body>
+</html>
